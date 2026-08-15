@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets/chrome.dart';
+import '../widgets/reader_bar.dart';
 import 'feed_list.dart';
 
 /// The tab this app exists for.
@@ -39,7 +40,12 @@ class HeadlinesScreen extends ConsumerWidget {
           children: [
             Masthead(
               dateline: DateFormat('EEEE d MMMM').format(now),
-              trailing: _WeightButton(onTap: onOpenSettings),
+              trailing: ListenButton(
+                stories: ref.watch(
+                  feedProvider(const FeedQuery(personalised: true))
+                      .select((s) => s.stories),
+                ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.md),
@@ -53,7 +59,7 @@ class HeadlinesScreen extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       active
-                          .take(4)
+                          .take(3)
                           .map((r) => _regionLabel(r).toUpperCase())
                           .join('  ·  '),
                       style: NewsType.eyebrow.copyWith(color: c.textSecondary, fontSize: 9.5),
@@ -61,6 +67,7 @@ class HeadlinesScreen extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  _WeightButton(onTap: onOpenSettings),
                 ],
               ),
             ),

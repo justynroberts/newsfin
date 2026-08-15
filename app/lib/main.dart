@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
+import 'models.dart';
+import 'reader.dart';
 import 'screens/headlines.dart';
 import 'screens/search.dart';
 import 'screens/sections.dart';
 import 'screens/settings.dart';
 import 'state.dart';
 import 'theme.dart';
+import 'widgets/reader_bar.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -85,11 +90,27 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
     // whatever was on screen when it was last put down.
     if (state == AppLifecycleState.paused) {
       _backgroundedAt = DateTime.now();
+      // Speech continuing after the app is backgrounded is disorienting and
+      // there is no lock-screen control for it.
+      ref.read(readerProvider.notifier).pause();
     } else if (state == AppLifecycleState.resumed) {
       final away = DateTime.now().difference(_backgroundedAt);
       if (away > const Duration(minutes: 4)) {
         ref.read(feedProvider(const FeedQuery(personalised: true)).notifier).refresh();
       }
+    }
+  }
+
+  Future<void> _openStory(Story story) async {
+    final uri = Uri.tryParse(story.url);
+    if (uri == null) return;
+    final mode = ref.read(settingsProvider).openInApp
+        ? LaunchMode.inAppBrowserView
+        : LaunchMode.externalApplication;
+    try {
+      await launchUrl(uri, mode: mode);
+    } catch (_) {
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
     }
   }
 
@@ -109,12 +130,19 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
       // Phone-first, but the PWA opens on laptops too - the measure is capped
       // so headlines never run the full width of a desktop display.
       body: Measure(child: IndexedStack(index: _index, children: tabs)),
-      bottomNavigationBar: _BottomBar(
-        index: _index,
-        onChanged: (i) {
-          HapticFeedback.selectionClick();
-          setState(() => _index = i);
-        },
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Above the nav so it never covers the last row of a list.
+          ReaderBar(onOpen: _openStory),
+          _BottomBar(
+            index: _index,
+            onChanged: (i) {
+              HapticFeedback.selectionClick();
+              setState(() => _index = i);
+            },
+          ),
+        ],
       ),
     );
   }

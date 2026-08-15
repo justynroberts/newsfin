@@ -71,6 +71,22 @@ The ranking is the product, so it has to be legible without a number:
 The numeric score appears in exactly one place: the coverage sheet. A list that
 shows scores reads as a dashboard, not a front page.
 
+## The headline reader
+
+Impact ranking is carried visually by position, size and a margin rule — none
+of which reach a listener. So the spoken line leads with the **position**
+("1."), then the headline, then the outlet and source count. Position first
+because in a ranked list the number *is* the information; the source count
+trails so the headline is never delayed, and it is dropped entirely for a
+single-source story rather than announcing "1 sources".
+
+Transport controls are 48px minimum with visible labels — the people who most
+need this feature are the least able to hit a 24px icon. The bar sits above the
+navigation so it never covers the last row of a scrolling list.
+
+It deliberately does not compete with VoiceOver or TalkBack: those read the
+interface, this reads the news.
+
 ## Accessibility
 
 - Both palettes target WCAG AA; the light theme is the one that usually fails,

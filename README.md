@@ -71,6 +71,10 @@ Flutter, iOS + Android + web from one codebase.
 - **Search** — full-text across everything from the last few days.
 - **Coverage sheet** — long-press any story to see every outlet's headline for
   the same event. Nothing else shows you the framing side by side.
+- **Headline reader** — a spoken briefing for anyone who cannot comfortably
+  read a phone screen. It reads the ranked list in order, announcing position,
+  headline, outlet and source count, with 48px transport controls and speed
+  settings. Hands-free, and it works on device or in the browser.
 - Dark and light ("Paper") themes, reader-set text size, offline cache so it
   opens with content already on screen.
 
@@ -83,7 +87,7 @@ make setup     # server venv + dependencies
 make ingest    # one full fetch/cluster/score pass (~45s, ~6,000 articles)
 make dev       # API + PWA on :8099
 
-make test      # 65 backend + 24 Flutter tests
+make test      # 65 backend + 29 Flutter tests
 make lint
 make feeds     # re-check every registered feed is still alive
 ```

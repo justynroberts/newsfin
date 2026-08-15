@@ -30,6 +30,8 @@ class Settings {
     required this.hours,
     required this.minSources,
     required this.openInApp,
+    required this.speechRate,
+    required this.announceSources,
   });
 
   final Map<String, double> weights;
@@ -43,6 +45,16 @@ class Settings {
   final int minSources;
 
   final bool openInApp;
+
+  /// Speech multiplier for the headline reader. 1.0 is the platform's normal
+  /// pace; stored as a multiplier because flutter_tts rate values mean
+  /// different things on iOS, Android and the web.
+  final double speechRate;
+
+  /// Read the outlet and corroboration count after each headline. On by
+  /// default - hearing "reported by 18 sources" is how a listener gets the
+  /// ranking, which a sighted reader gets from the layout.
+  final bool announceSources;
 
   static const defaults = Settings(
     weights: {
@@ -59,6 +71,8 @@ class Settings {
     hours: 48,
     minSources: 1,
     openInApp: true,
+    speechRate: 1.0,
+    announceSources: true,
   );
 
   Settings copyWith({
@@ -69,6 +83,8 @@ class Settings {
     int? hours,
     int? minSources,
     bool? openInApp,
+    double? speechRate,
+    bool? announceSources,
   }) =>
       Settings(
         weights: weights ?? this.weights,
@@ -78,6 +94,8 @@ class Settings {
         hours: hours ?? this.hours,
         minSources: minSources ?? this.minSources,
         openInApp: openInApp ?? this.openInApp,
+        speechRate: speechRate ?? this.speechRate,
+        announceSources: announceSources ?? this.announceSources,
       );
 
   Map<String, dynamic> toJson() => {
@@ -88,6 +106,8 @@ class Settings {
         'hours': hours,
         'minSources': minSources,
         'openInApp': openInApp,
+        'speechRate': speechRate,
+        'announceSources': announceSources,
       };
 
   factory Settings.fromJson(Map<String, dynamic> j) => Settings(
@@ -102,6 +122,8 @@ class Settings {
         hours: (j['hours'] ?? 48) as int,
         minSources: (j['minSources'] ?? 1) as int,
         openInApp: (j['openInApp'] ?? true) as bool,
+        speechRate: ((j['speechRate'] ?? 1.0) as num).toDouble(),
+        announceSources: (j['announceSources'] ?? true) as bool,
       );
 }
 
@@ -165,6 +187,16 @@ class SettingsController extends StateNotifier<Settings> {
 
   void setOpenInApp(bool v) {
     state = state.copyWith(openInApp: v);
+    _save();
+  }
+
+  void setSpeechRate(double rate) {
+    state = state.copyWith(speechRate: rate);
+    _save();
+  }
+
+  void setAnnounceSources(bool v) {
+    state = state.copyWith(announceSources: v);
     _save();
   }
 

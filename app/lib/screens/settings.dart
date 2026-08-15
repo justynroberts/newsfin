@@ -114,6 +114,27 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: controller.setOpenInApp,
           ),
 
+          _SectionHeader(
+            title: 'HEADLINE READER',
+            note: 'Reads the ranked headlines aloud, in order, so the briefing '
+                'works without looking at the screen. Start it from the Listen '
+                'button on the Headlines tab.',
+          ),
+          _ChoiceRow<int>(
+            label: 'Speaking speed',
+            options: const {70: 'Slow', 85: 'Relaxed', 100: 'Normal', 125: 'Fast'},
+            value: (settings.speechRate * 100).round(),
+            onChanged: (pct) => controller.setSpeechRate(pct / 100),
+          ),
+          _SwitchRow(
+            label: 'Announce the source count',
+            note: 'Reads "BBC News, reported by 18 sources" after each '
+                'headline — how a listener gets the ranking that the layout '
+                'shows on screen.',
+            value: settings.announceSources,
+            onChanged: controller.setAnnounceSources,
+          ),
+
           _SectionHeader(title: 'ABOUT'),
           _AboutBlock(sourceCount: config.sourceCount),
         ],

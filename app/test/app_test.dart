@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:newsfin/models.dart';
 import 'package:newsfin/motion.dart';
+import 'package:newsfin/reader.dart';
 import 'package:newsfin/state.dart';
 import 'package:newsfin/theme.dart';
 import 'package:newsfin/widgets/story_tile.dart';
@@ -227,6 +228,8 @@ void main() {
         hours: 24,
         minSources: 2,
         openInApp: false,
+        speechRate: 0.85,
+        announceSources: false,
       );
       final restored = Settings.fromJson(s.toJson());
       expect(restored.weights['uk'], 3.0);
@@ -234,6 +237,8 @@ void main() {
       expect(restored.themeMode, ThemeMode.light);
       expect(restored.minSources, 2);
       expect(restored.openInApp, isFalse);
+      expect(restored.speechRate, 0.85);
+      expect(restored.announceSources, isFalse);
     });
 
     test('unknown stored theme falls back rather than crashing', () {
@@ -262,6 +267,45 @@ void main() {
         const FeedQuery(regions: ['uk']).cacheKey,
         isNot(const FeedQuery(regions: ['us']).cacheKey),
       );
+    });
+  });
+
+  group('Headline reader', () {
+    test('speaking speed and source announcement persist', () {
+      final restored = Settings.fromJson(
+        Settings.defaults.copyWith(speechRate: 1.25, announceSources: false).toJson(),
+      );
+      expect(restored.speechRate, 1.25);
+      expect(restored.announceSources, isFalse);
+    });
+
+    test('older stored settings gain reader defaults rather than breaking', () {
+      // Settings saved before the reader existed have no speechRate key.
+      final s = Settings.fromJson({'weights': {'uk': 3.0}, 'locale': 'london'});
+      expect(s.speechRate, 1.0);
+      expect(s.announceSources, isTrue);
+    });
+
+    test('the spoken line leads with position, then headline, then sources', () {
+      // Position first because in a ranked list the number IS the information;
+      // the source count trails so the headline is never delayed.
+      final line = spokenLine(
+        makeStory(title: 'Earthquake kills at least 38', source: 'BBC World', sources: 28),
+        1,
+        announceSources: true,
+      );
+      expect(line, '1. Earthquake kills at least 38. BBC World, reported by 28 sources.');
+    });
+
+    test('a single-source story does not claim corroboration aloud', () {
+      final line = spokenLine(makeStory(sources: 1), 3, announceSources: true);
+      expect(line, isNot(contains('sources')));
+      expect(line, startsWith('3. '));
+    });
+
+    test('source announcement can be turned off entirely', () {
+      final line = spokenLine(makeStory(title: 'A headline'), 2, announceSources: false);
+      expect(line, '2. A headline.');
     });
   });
 
