@@ -56,8 +56,8 @@ class ReaderState {
   final int total;
   final String currentTitle;
 
-  /// False when the platform has no speech engine at all - a browser with the
-  /// Web Speech API disabled, or a device with no voices installed.
+  /// Only false once speech has actually been attempted and failed. It is
+  /// deliberately not a startup capability probe - see the constructor.
   final bool available;
 
   final String? error;
@@ -84,9 +84,13 @@ class ReaderState {
 }
 
 class ReaderController extends StateNotifier<ReaderState> {
-  ReaderController(this._ref) : super(const ReaderState()) {
-    _init();
-  }
+  // No probing in the constructor.
+  //
+  // Browsers refuse speech synthesis until a user gesture has occurred, so a
+  // startup probe fails on the web and used to mark the reader unavailable —
+  // which hid the very button that would have supplied the gesture. The engine
+  // is now initialised inside the tap that starts playback.
+  ReaderController(this._ref) : super(const ReaderState());
 
   final Ref _ref;
   final FlutterTts _tts = FlutterTts();
@@ -116,13 +120,11 @@ class ReaderController extends StateNotifier<ReaderState> {
       });
       _ready = true;
     } catch (e) {
-      if (mounted) {
-        state = state.copyWith(
-          available: false,
-          error: 'No speech engine available on this device',
-        );
-      }
-      debugPrint('TTS unavailable: $e');
+      // Not fatal, and specifically not a reason to hide the control: some of
+      // these setters are unimplemented on web, but speak() still works once a
+      // gesture has happened. Only a failed speak() counts as unavailable.
+      debugPrint('TTS setup incomplete (continuing): $e');
+      _ready = true;
     }
   }
 
@@ -169,9 +171,15 @@ class ReaderController extends StateNotifier<ReaderState> {
         _advance();
       }
     } catch (e) {
+      // A failure here is the real signal that this device cannot speak.
       if (mounted) {
-        state = state.copyWith(playing: false, error: '$e');
+        state = state.copyWith(
+          playing: false,
+          available: false,
+          error: 'Speech is unavailable on this device',
+        );
       }
+      debugPrint('TTS speak failed: $e');
     }
   }
 

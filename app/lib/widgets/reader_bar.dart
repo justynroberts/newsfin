@@ -22,6 +22,8 @@ class ListenButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = NewsTheme.of(context);
     final reader = ref.watch(readerProvider);
+    // Only hidden once speech has been tried and failed - never on a startup
+    // probe, which cannot succeed before the user has interacted at all.
     if (!reader.available) return const SizedBox.shrink();
 
     final playing = reader.playing;
