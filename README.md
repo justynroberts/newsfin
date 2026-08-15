@@ -83,7 +83,7 @@ make setup     # server venv + dependencies
 make ingest    # one full fetch/cluster/score pass (~45s, ~6,000 articles)
 make dev       # API + PWA on :8099
 
-make test      # 46 backend + 24 Flutter tests
+make test      # 65 backend + 24 Flutter tests
 make lint
 make feeds     # re-check every registered feed is still alive
 ```

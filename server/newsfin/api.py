@@ -187,12 +187,18 @@ def headlines(
         bad = [r for r in wanted_regions if r not in REGIONS]
         if bad:
             raise HTTPException(400, f"unknown region(s): {bad}")
-        # regions column holds every region the coverage touched, so a story
-        # carried by both BBC UK and NYT World shows on either tab.
-        clause = " OR ".join(["region = ?"] * len(wanted_regions)
-                             + ["(',' || regions || ',') LIKE ?"] * len(wanted_regions))
+        # Match the primary region only.
+        #
+        # The `regions` column lists every region whose feeds touched the
+        # story, and matching against it leaked badly: a UK story picked up by
+        # one American outlet appeared on the World tab, so World led with
+        # British university news. Now that the primary region is derived from
+        # the headline text rather than the feed, it is the honest answer to
+        # "what is this story about" - and a section tab should mean exactly
+        # that.
+        clause = " OR ".join(["region = ?"] * len(wanted_regions))
         where.append(f"({clause})")
-        params += wanted_regions + [f"%,{r},%" for r in wanted_regions]
+        params += wanted_regions
 
     if topic and topic != "top":
         if topic not in TOPICS:
