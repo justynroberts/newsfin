@@ -36,27 +36,27 @@
     :root {
       --bg: #FBFAF7;
       --text: #14141A;
-      --muted: #8A8A94;
+      --muted: #5C5C66;
       --accent: #00915A;
-      --line: #E3E1DA;
+      --line: #B4B1A6;
     }
 
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme='light']) {
         --bg: #0A0A0C;
         --text: #F4F3F0;
-        --muted: #6A6A75;
+        --muted: #9C9CA6;
         --accent: #00C46A;
-        --line: #222228;
+        --line: #565662;
       }
     }
 
     :root[data-theme='dark'] {
       --bg: #0A0A0C;
       --text: #F4F3F0;
-      --muted: #6A6A75;
+      --muted: #9C9CA6;
       --accent: #00C46A;
-      --line: #222228;
+      --line: #565662;
     }
 
     html, body {
@@ -78,9 +78,15 @@
       gap: 14px;
       background: var(--bg);
       font-family: 'Bricolage Grotesque', 'SF Pro Display', -apple-system, system-ui, sans-serif;
-      /* The app's own rise-and-fade signature, so the very first thing the
-         user sees is already in the app's motion language. */
-      animation: rise-in 420ms cubic-bezier(0.2, 0, 0, 1) both;
+      /* No entrance animation on the boot screen itself. It used `both` fill,
+         which holds opacity 0 until the animation starts - so if the main
+         thread was busy the loading UI was invisible during exactly the wait
+         it exists to explain. It paints immediately now; only the wordmark
+         animates. */
+    }
+
+    #boot .wordmark, #boot .tagline, #boot .track, #boot .status {
+      animation: rise-in 320ms cubic-bezier(0.2, 0, 0, 1) both;
     }
 
     #boot .wordmark {
@@ -102,25 +108,29 @@
        pulls ~3.4MB of engine and fonts, which is long enough that an
        indeterminate spinner would just look broken. */
     #boot .track {
-      width: 180px;
-      height: 2px;
-      margin-top: 6px;
+      width: 220px;
+      height: 4px;
+      margin-top: 8px;
       background: var(--line);
-      border-radius: 2px;
+      border-radius: 3px;
       overflow: hidden;
     }
 
     #boot .bar {
       height: 100%;
-      width: 0%;
+      /* Starts visible rather than at zero width. An empty track on a
+         near-black canvas reads as "nothing is happening"; a green nub reads
+         as "it has started", which is the honest state once the document has
+         parsed and the engine request is in flight. */
+      width: 6%;
       background: var(--accent);
-      border-radius: 2px;
+      border-radius: 3px;
       /* Eased so byte-count jitter reads as steady movement. */
       transition: width 220ms cubic-bezier(0.2, 0, 0, 1);
     }
 
     #boot .status {
-      font-size: 10px;
+      font-size: 11px;
       letter-spacing: 1.2px;
       text-transform: uppercase;
       color: var(--muted);
@@ -181,12 +191,18 @@
 
       var loaded = 0;
       var expected = EXPECTED;
-      var announced = 0;
+      var announced = 6;   // matches the CSS starting width
       var done = false;
+      var shownAt = Date.now();
+
+      // Below this the bar would appear and vanish in the same blink, which
+      // reads as a glitch. Warm loads are fast enough to hit it every time.
+      var MIN_VISIBLE_MS = 450;
 
       function paint() {
         if (done) return;
-        var pct = Math.min(97, Math.round((loaded / Math.max(expected, loaded, 1)) * 100));
+        var pct = Math.max(6, Math.min(97,
+          Math.round((loaded / Math.max(expected, loaded, 1)) * 100)));
         // Monotonic: a late Content-Length must never pull the bar backwards.
         if (pct <= announced) return;
         announced = pct;
@@ -206,7 +222,12 @@
         if (track) track.setAttribute('aria-valuenow', '100');
         if (status) status.textContent = 'Ready';
       }
+
+      // How long the boot screen still owes the viewer, so it is never a flash.
       window.__bootFinish = finish;
+      window.__bootRemaining = function () {
+        return Math.max(0, MIN_VISIBLE_MS - (Date.now() - shownAt));
+      };
 
       // Only the heavyweight assets are worth counting; a 200-byte manifest
       // adds noise to the denominator and nothing to the wait.
@@ -285,12 +306,15 @@
       if (window.__bootFinish) window.__bootFinish();
       var boot = document.getElementById('boot');
       if (!boot) return;
-      // Let the bar reach 100% before the screen goes, otherwise it reads as
-      // having given up rather than finished.
+      // Hold until the bar has both reached 100% and been on screen long
+      // enough to read. On a warm load everything is cached and the whole boot
+      // lasts a few hundred milliseconds - without this the bar flickers past
+      // and looks broken rather than fast.
+      var wait = 160 + (window.__bootRemaining ? window.__bootRemaining() : 0);
       setTimeout(function () {
         boot.classList.add('done');
         setTimeout(function () { boot.remove(); }, 320);
-      }, 140);
+      }, wait);
     });
   </script>
   <!-- Explicit loader rather than the default flutter_bootstrap.js, purely so
@@ -312,7 +336,7 @@ _flutter.buildConfig = {"engineRevision":"39d6d6e699e51b2874210e14cddf1a22fb9524
       _flutter.loader.load({
         config: { canvasKitBaseUrl: '/canvaskit/' },
         serviceWorkerSettings: {
-          serviceWorkerVersion: "2061340355"
+          serviceWorkerVersion: "807080514"
         }
       });
     });
