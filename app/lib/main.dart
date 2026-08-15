@@ -106,7 +106,9 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
 
     return Scaffold(
       backgroundColor: c.canvas,
-      body: IndexedStack(index: _index, children: tabs),
+      // Phone-first, but the PWA opens on laptops too - the measure is capped
+      // so headlines never run the full width of a desktop display.
+      body: Measure(child: IndexedStack(index: _index, children: tabs)),
       bottomNavigationBar: _BottomBar(
         index: _index,
         onChanged: (i) {
@@ -146,7 +148,8 @@ class _BottomBar extends StatelessWidget {
         top: false,
         child: SizedBox(
           height: 56,
-          child: Row(
+          child: Measure(
+              child: Row(
             children: [
               for (var i = 0; i < _items.length; i++)
                 Expanded(
@@ -173,7 +176,7 @@ class _BottomBar extends StatelessWidget {
                   ),
                 ),
             ],
-          ),
+          )),
         ),
       ),
     );

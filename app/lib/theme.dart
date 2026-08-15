@@ -218,6 +218,28 @@ class Gap {
   static const page = 20.0;
 }
 
+/// Caps the reading measure on wide screens.
+///
+/// The app is phone-first, but the PWA opens on laptops too, and a headline
+/// set across 1600px is unreadable — the eye loses the line. An editorial
+/// layout is defined as much by the column width as by the type.
+class Measure extends StatelessWidget {
+  const Measure({super.key, required this.child, this.maxWidth = 820});
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      ),
+    );
+  }
+}
+
 class NewsTheme extends InheritedWidget {
   const NewsTheme({super.key, required this.colors, required super.child});
 
