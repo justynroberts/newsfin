@@ -38,6 +38,7 @@
       --text: #14141A;
       --muted: #8A8A94;
       --accent: #00915A;
+      --line: #E3E1DA;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -46,6 +47,7 @@
         --text: #F4F3F0;
         --muted: #6A6A75;
         --accent: #00C46A;
+        --line: #222228;
       }
     }
 
@@ -54,6 +56,7 @@
       --text: #F4F3F0;
       --muted: #6A6A75;
       --accent: #00C46A;
+      --line: #222228;
     }
 
     html, body {
@@ -95,6 +98,36 @@
       color: var(--muted);
     }
 
+    /* A real progress bar, driven by bytes actually downloaded - a cold load
+       pulls ~3.4MB of engine and fonts, which is long enough that an
+       indeterminate spinner would just look broken. */
+    #boot .track {
+      width: 180px;
+      height: 2px;
+      margin-top: 6px;
+      background: var(--line);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #boot .bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: 2px;
+      /* Eased so byte-count jitter reads as steady movement. */
+      transition: width 220ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    #boot .status {
+      font-size: 10px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      min-height: 12px;
+    }
+
     @keyframes rise-in {
       from { opacity: 0; transform: translateY(12px); }
       to   { opacity: 1; transform: none; }
@@ -120,9 +153,123 @@
   <div id="boot">
     <div class="wordmark">NEWS<span>FIN</span></div>
     <div class="tagline">Ranked by impact</div>
+    <div class="track" role="progressbar" aria-label="Loading NewsFin"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="boot-track">
+      <div class="bar" id="boot-bar"></div>
+    </div>
+    <div class="status" id="boot-status">Starting</div>
   </div>
 
   <script>
+    // Real download progress.
+    //
+    // A cold load pulls the engine WASM, the compiled app and two fonts -
+    // ~3.4MB gzipped. Flutter's loader exposes no progress, so `fetch` is
+    // wrapped before the loader runs and the response bodies are counted as
+    // they stream in. Nothing here is simulated: the bar only moves when
+    // bytes actually arrive.
+    (function () {
+      var bar = document.getElementById('boot-bar');
+      var track = document.getElementById('boot-track');
+      var status = document.getElementById('boot-status');
+      if (!bar) return;
+
+      // Measured from the deployed bundle. Only used as the denominator until
+      // the real Content-Lengths are known, and never allowed to shrink below
+      // what has already arrived, so the bar cannot run backwards.
+      var EXPECTED = 3400000;
+
+      var loaded = 0;
+      var expected = EXPECTED;
+      var announced = 0;
+      var done = false;
+
+      function paint() {
+        if (done) return;
+        var pct = Math.min(97, Math.round((loaded / Math.max(expected, loaded, 1)) * 100));
+        // Monotonic: a late Content-Length must never pull the bar backwards.
+        if (pct <= announced) return;
+        announced = pct;
+        bar.style.width = pct + '%';
+        if (track) track.setAttribute('aria-valuenow', String(pct));
+        if (status) {
+          status.textContent = loaded > 250000
+            ? 'Loading ' + (loaded / 1048576).toFixed(1) + ' MB'
+            : 'Loading';
+        }
+      }
+
+      function finish() {
+        if (done) return;
+        done = true;
+        bar.style.width = '100%';
+        if (track) track.setAttribute('aria-valuenow', '100');
+        if (status) status.textContent = 'Ready';
+      }
+      window.__bootFinish = finish;
+
+      // Only the heavyweight assets are worth counting; a 200-byte manifest
+      // adds noise to the denominator and nothing to the wait.
+      function tracked(url) {
+        return /\.(wasm|js|ttf|otf|bin)(\?|$)/.test(url) && !/flutter_service_worker/.test(url);
+      }
+
+      var nativeFetch = window.fetch.bind(window);
+      window.fetch = function (input, init) {
+        var url = typeof input === 'string' ? input : (input && input.url) || '';
+        var promise = nativeFetch(input, init);
+        if (!tracked(url) || done) return promise;
+
+        return promise.then(function (response) {
+          var len = parseInt(response.headers.get('content-length') || '0', 10);
+          if (len > 0) expected = Math.max(expected, loaded + len);
+
+          // A cached response has no readable progress worth showing, and
+          // tee-ing it wastes memory - count it whole and move on.
+          if (!response.body || response.status === 304) {
+            loaded += len;
+            paint();
+            return response;
+          }
+
+          var reader = response.body.getReader();
+          var stream = new ReadableStream({
+            start: function (controller) {
+              (function pump() {
+                reader.read().then(function (r) {
+                  if (r.done) { controller.close(); return; }
+                  loaded += r.value.byteLength;
+                  paint();
+                  controller.enqueue(r.value);
+                  pump();
+                }).catch(function (e) { controller.error(e); });
+              })();
+            }
+          });
+          return new Response(stream, {
+            headers: response.headers,
+            status: response.status,
+            statusText: response.statusText
+          });
+        });
+      };
+
+      // The engine is fetched with XHR in some paths; count those too.
+      var open = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (method, url) {
+        if (tracked(String(url))) {
+          this.addEventListener('progress', function (e) {
+            if (e.lengthComputable) {
+              expected = Math.max(expected, loaded + e.total);
+              loaded += 0; // progress events are cumulative per request
+              paint();
+            }
+          });
+        }
+        return open.apply(this, arguments);
+      };
+    })();
+
     // Flutter owns the theme once it boots; this only stops the boot screen
     // flashing the wrong ground colour on a cold load.
     (function () {
@@ -135,10 +282,15 @@
     })();
 
     window.addEventListener('flutter-first-frame', function () {
+      if (window.__bootFinish) window.__bootFinish();
       var boot = document.getElementById('boot');
       if (!boot) return;
-      boot.classList.add('done');
-      setTimeout(function () { boot.remove(); }, 320);
+      // Let the bar reach 100% before the screen goes, otherwise it reads as
+      // having given up rather than finished.
+      setTimeout(function () {
+        boot.classList.add('done');
+        setTimeout(function () { boot.remove(); }, 320);
+      }, 140);
     });
   </script>
   <!-- Explicit loader rather than the default flutter_bootstrap.js, purely so
@@ -160,7 +312,7 @@ _flutter.buildConfig = {"engineRevision":"39d6d6e699e51b2874210e14cddf1a22fb9524
       _flutter.loader.load({
         config: { canvasKitBaseUrl: '/canvaskit/' },
         serviceWorkerSettings: {
-          serviceWorkerVersion: "3113957361"
+          serviceWorkerVersion: "2061340355"
         }
       });
     });

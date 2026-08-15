@@ -11,9 +11,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, ORJSONResponse
+from fastapi.responses import FileResponse, ORJSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import db
@@ -354,13 +354,69 @@ def healthz():
 # Flutter web build (PWA) - mounted last so it never shadows /api
 # ----------------------------------------------------------------------
 
+# A cold load pulls ~3.4MB gzipped, and the engine WASM alone is 2.2MB of it.
+# Without cache headers the browser re-fetches all of it on every visit, which
+# is the whole reason the app felt slow to open. These are the only files big
+# enough to matter, and they change only when the Flutter SDK or the bundled
+# fonts change - i.e. on a deliberate rebuild, not on a content update.
+IMMUTABLE_PREFIXES = ("/canvaskit/", "/assets/", "/icons/")
+IMMUTABLE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+
+# Revalidated every load. They are small, and an ETag hit costs a 304 rather
+# than a download - so a redeploy is picked up immediately without stranding
+# anyone on a stale bundle.
+REVALIDATE_PATHS = (
+    "/",
+    "/index.html",
+    "/main.dart.js",
+    "/flutter.js",
+    "/flutter_bootstrap.js",
+    "/flutter_service_worker.js",
+    "/version.json",
+    "/manifest.json",
+)
+
+
+@app.middleware("http")
+async def cache_headers(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+
+    if path.startswith("/api/") or path == "/healthz":
+        response.headers["Cache-Control"] = "no-store"
+    elif any(path.startswith(p) for p in IMMUTABLE_PREFIXES):
+        response.headers["Cache-Control"] = f"public, max-age={IMMUTABLE_MAX_AGE}, immutable"
+    elif path in REVALIDATE_PATHS:
+        response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
+    return response
+
+
 if STATIC_DIR.is_dir():
     app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
     app.mount("/canvaskit", StaticFiles(directory=STATIC_DIR / "canvaskit"), name="canvaskit")
 
     @app.get("/{path:path}", include_in_schema=False)
-    def spa(path: str):
+    def spa(path: str, request: Request):
         candidate = (STATIC_DIR / path).resolve()
         if path and candidate.is_file() and STATIC_DIR.resolve() in candidate.parents:
-            return FileResponse(candidate)
-        return FileResponse(STATIC_DIR / "index.html")
+            target = candidate
+        else:
+            target = STATIC_DIR / "index.html"
+
+        # stat_result is what makes FileResponse populate etag/last-modified
+        # up front. Without it those headers are only computed while the
+        # response is being sent, so the conditional check below silently never
+        # matched and every revalidation re-sent the whole file.
+        response = FileResponse(target, stat_result=target.stat())
+
+        # Honour conditional requests. StaticFiles does this for the mounted
+        # trees, but a bare FileResponse does not - so every revalidation of
+        # main.dart.js was answering with the whole 800KB bundle instead of a
+        # 304. These files are must-revalidate, so that happened on every load.
+        etag = response.headers.get("etag")
+        if etag and etag in [
+            t.strip() for t in (request.headers.get("if-none-match") or "").split(",")
+        ]:
+            return Response(status_code=304, headers={"etag": etag})
+
+        return response

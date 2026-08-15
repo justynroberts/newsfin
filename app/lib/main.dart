@@ -72,6 +72,17 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
   int _index = 0;
   DateTime _backgroundedAt = DateTime.now();
 
+  /// Tabs that have been opened at least once. Everything else stays unbuilt,
+  /// so a cold start does the work of one screen rather than four.
+  final Set<int> _visited = {0};
+
+  void _select(int i) {
+    setState(() {
+      _index = i;
+      _visited.add(i);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -118,18 +129,33 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
   Widget build(BuildContext context) {
     final c = NewsTheme.of(context);
 
-    final tabs = [
-      HeadlinesScreen(onOpenSettings: () => setState(() => _index = 3)),
-      const SectionsScreen(),
-      const SearchScreen(),
-      const SettingsScreen(),
-    ];
+    // IndexedStack builds every child, so the stock version mounted all four
+    // tabs on the first frame: Sections immediately fired its own headlines
+    // request and built a second 60-row list nobody had asked for. That is
+    // what made the app slow to answer the first tap.
+    //
+    // A tab is built the first time it is opened and kept alive after that, so
+    // switching back stays instant.
+    Widget tabAt(int i) {
+      if (!_visited.contains(i)) return const SizedBox.shrink();
+      return switch (i) {
+        0 => HeadlinesScreen(onOpenSettings: () => _select(3)),
+        1 => const SectionsScreen(),
+        2 => const SearchScreen(),
+        _ => const SettingsScreen(),
+      };
+    }
 
     return Scaffold(
       backgroundColor: c.canvas,
       // Phone-first, but the PWA opens on laptops too - the measure is capped
       // so headlines never run the full width of a desktop display.
-      body: Measure(child: IndexedStack(index: _index, children: tabs)),
+      body: Measure(
+        child: IndexedStack(
+          index: _index,
+          children: [for (var i = 0; i < 4; i++) tabAt(i)],
+        ),
+      ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -139,7 +165,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
             index: _index,
             onChanged: (i) {
               HapticFeedback.selectionClick();
-              setState(() => _index = i);
+              _select(i);
             },
           ),
         ],
