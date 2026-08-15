@@ -26087,7 +26087,7 @@ $S:2}
 A.apS.prototype={
 $1(a){var s=A.er().b
 s=s==null?null:s.canvasKitBaseUrl
-return(s==null?"https://www.gstatic.com/flutter-canvaskit/39d6d6e699e51b2874210e14cddf1a22fb9524b2/":s)+a},
+return(s==null?"/canvaskit/":s)+a},
 $S:53}
 A.YC.prototype={
 eK(a,b){var s,r=this.a

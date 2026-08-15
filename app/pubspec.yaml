@@ -20,6 +20,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -36,3 +37,24 @@ flutter:
     - family: SplineSansMono
       fonts:
         - asset: assets/fonts/SplineSansMono.ttf
+
+# App icon generation: `dart run flutter_launcher_icons`.
+# Sources are built by tools/make_icons.py from assets/icon/source.png.
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+
+  android: true
+  # Adaptive icons are cropped to an inner safe zone and parallaxed by the
+  # launcher, so the foreground is a separate, smaller composition.
+  adaptive_icon_background: "#FBFAF7"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+
+  ios: true
+  # iOS rejects any alpha channel in an app icon.
+  remove_alpha_ios: true
+
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    background_color: "#FBFAF7"
+    theme_color: "#0A0A0C"
