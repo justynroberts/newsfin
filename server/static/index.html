@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<!-- MIT License - Copyright (c) fintonlabs.com -->
+<html lang="en-GB">
+<head>
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Impact-ranked world news. Over 200 newsrooms across the UK, Ireland, Europe, the US and the world, grouped by story and ordered by what actually matters.">
+
+  <!-- Installs to the home screen as a standalone app, which is the point:
+       this should open like a native app, not like a browser tab. -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NewsFin">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Matches the app canvas in each theme so there is no flash of white
+       behind the status bar while the engine boots. -->
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FBFAF7">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A0A0C">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>NewsFin — impact-ranked news</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* MIT License - Copyright (c) fintonlabs.com */
+
+    /* The boot screen. Flutter takes a moment to paint on a cold load, and an
+       unstyled white page in that window undoes the whole design. This paints
+       the correct ground colour immediately in both themes. */
+    :root {
+      --bg: #FBFAF7;
+      --text: #14141A;
+      --muted: #8A8A94;
+      --accent: #00915A;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) {
+        --bg: #0A0A0C;
+        --text: #F4F3F0;
+        --muted: #6A6A75;
+        --accent: #00C46A;
+      }
+    }
+
+    :root[data-theme='dark'] {
+      --bg: #0A0A0C;
+      --text: #F4F3F0;
+      --muted: #6A6A75;
+      --accent: #00C46A;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      overscroll-behavior: none;
+    }
+
+    #boot {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: var(--bg);
+      font-family: 'Bricolage Grotesque', 'SF Pro Display', -apple-system, system-ui, sans-serif;
+      /* The app's own rise-and-fade signature, so the very first thing the
+         user sees is already in the app's motion language. */
+      animation: rise-in 420ms cubic-bezier(0.2, 0, 0, 1) both;
+    }
+
+    #boot .wordmark {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -1.4px;
+    }
+
+    #boot .wordmark span { color: var(--accent); }
+
+    #boot .tagline {
+      font-size: 11px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    @keyframes rise-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* Boot screen fades out once Flutter has painted. */
+    #boot.done {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 300ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="boot">
+    <div class="wordmark">NEWS<span>FIN</span></div>
+    <div class="tagline">Ranked by impact</div>
+  </div>
+
+  <script>
+    // Flutter owns the theme once it boots; this only stops the boot screen
+    // flashing the wrong ground colour on a cold load.
+    (function () {
+      try {
+        var stored = localStorage.getItem('newsfin.theme');
+        if (stored === 'dark' || stored === 'light') {
+          document.documentElement.setAttribute('data-theme', stored);
+        }
+      } catch (e) { /* private mode - fall back to prefers-color-scheme */ }
+    })();
+
+    window.addEventListener('flutter-first-frame', function () {
+      var boot = document.getElementById('boot');
+      if (!boot) return;
+      boot.classList.add('done');
+      setTimeout(function () { boot.remove(); }, 320);
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

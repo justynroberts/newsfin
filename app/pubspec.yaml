@@ -1,0 +1,37 @@
+name: newsfin
+description: Impact-ranked world news. Headlines first.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  http: ^1.2.2
+  shared_preferences: ^2.3.2
+  url_launcher: ^6.3.1
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    # House style: Bricolage Grotesque is the display and primary face. It is
+    # variable across optical size, width and weight, so the whole hierarchy -
+    # masthead, lead headline, standfirst, labels - comes from one family
+    # rather than a second typeface.
+    - family: Bricolage
+      fonts:
+        - asset: assets/fonts/Bricolage.ttf
+    # Mono slot (a per-project choice): numerics, timestamps, source counts.
+    - family: SplineSansMono
+      fonts:
+        - asset: assets/fonts/SplineSansMono.ttf

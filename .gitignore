@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Runtime data - the SQLite database is rebuilt from the feeds
+server/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Flutter
+app/.dart_tool/
+app/build/
+app/.flutter-plugins*
+app/ios/Pods/
+app/ios/.symlinks/
+app/android/.gradle/
+app/android/local.properties
+app/*.iml
+
+# server/static is a COMMITTED build artifact (the Flutter web bundle).
+# Deploys copy it straight into the image, which keeps them fast and
+# reproducible. Regenerate with `make web`.
+
+.DS_Store
