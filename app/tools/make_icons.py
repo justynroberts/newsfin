@@ -11,8 +11,9 @@ Three compositions come out, because the platforms crop differently:
 
     icon.png             full bleed, 82% content - iOS rounds the corners and
                          Android's legacy launcher may circle-crop it
-    icon_foreground.png  transparent, 56% content - Android adaptive icons crop
-                         to an inner safe zone and parallax over it
+    icon_foreground.png  transparent, 70% content - Android adaptive icons crop
+                         to an inner safe zone and parallax over it, and the
+                         generator adds another 16% inset on top
     icon_maskable.png    58% content - the web maskable safe zone is a circle
 
 Run from the `app/` directory.
@@ -87,7 +88,10 @@ def main() -> None:
     mask = build_mask()
 
     compose(mask, 1024, 0.82, PAPER).convert("RGB").save(ICON_DIR / "icon.png")
-    compose(mask, 1024, 0.56).save(ICON_DIR / "icon_foreground.png")
+    # 0.70, not the ~0.56 the safe zone alone suggests: flutter_launcher_icons
+    # wraps this drawable in a further 16%-per-side inset, so the two compound.
+    # At 0.56 the mark ended up filling barely half the launcher's circle.
+    compose(mask, 1024, 0.70).save(ICON_DIR / "icon_foreground.png")
     compose(mask, 1024, 0.58, PAPER).convert("RGB").save(ICON_DIR / "icon_maskable.png")
 
     # flutter_launcher_icons derives the web maskable icons from the full-bleed
