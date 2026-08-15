@@ -25,6 +25,9 @@ class ListenButton extends ConsumerWidget {
     // Only hidden once speech has been tried and failed - never on a startup
     // probe, which cannot succeed before the user has interacted at all.
     if (!reader.available) return const SizedBox.shrink();
+    // Nothing to read yet: offering the control would make the first tap do
+    // nothing at all, which is worse than not offering it.
+    if (stories.isEmpty && !reader.active) return const SizedBox.shrink();
 
     final playing = reader.playing;
 
