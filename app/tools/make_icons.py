@@ -18,6 +18,7 @@ Three compositions come out, because the platforms crop differently:
 Run from the `app/` directory.
 """
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -103,6 +104,16 @@ def main() -> None:
         Image.open(ICON_DIR / "icon.png").convert("RGB").resize(
             (64, 64), Image.LANCZOS
         ).save(web / "favicon.png")
+
+        # The generator also rewrites the PWA splash colour to the icon's paper
+        # background. The app opens dark, so that shows a white flash before
+        # the first frame - put it back.
+        manifest = web / "manifest.json"
+        if manifest.is_file():
+            data = json.loads(manifest.read_text())
+            data["background_color"] = "#0A0A0C"
+            data["theme_color"] = "#0A0A0C"
+            manifest.write_text(json.dumps(data, indent=2) + "\n")
 
     print("icon sources written to", ICON_DIR)
 
