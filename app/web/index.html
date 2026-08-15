@@ -141,6 +141,25 @@
       setTimeout(function () { boot.remove(); }, 320);
     });
   </script>
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- Explicit loader rather than the default flutter_bootstrap.js, purely so
+       canvasKitBaseUrl can be set. Flutter otherwise fetches the CanvasKit
+       WASM from gstatic.com at runtime, which makes a morning news app fail to
+       render on any network that blocks Google's CDN. The files are already in
+       the image; the build-time --dart-define for this is not honoured. -->
+  <!-- The build config is what flutter_bootstrap.js would normally inject.
+       Omitting it leaves _flutter.buildConfig undefined and the loader never
+       starts the engine - the page sits on the boot screen forever. -->
+  <script>{{flutter_build_config}}</script>
+  <script src="flutter.js" defer></script>
+  <script>
+    window.addEventListener('load', function () {
+      _flutter.loader.load({
+        config: { canvasKitBaseUrl: '/canvaskit/' },
+        serviceWorkerSettings: {
+          serviceWorkerVersion: {{flutter_service_worker_version}}
+        }
+      });
+    });
+  </script>
 </body>
 </html>
