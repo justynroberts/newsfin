@@ -85,6 +85,13 @@ Flutter, iOS + Android + web from one codebase.
 - **Search** — full-text across everything from the last few days.
 - **Coverage sheet** — long-press any story to see every outlet's headline for
   the same event. Nothing else shows you the framing side by side.
+- **Learns what you read, on the device.** Opening a story is the signal; it
+  compares how often you open a subject against how often it was *offered*, so
+  it learns your taste rather than the shape of the feed. Two guarantees: the
+  nudge is clamped so it can never leapfrog a genuinely bigger story, and a
+  story carried by many independent newsrooms is never pushed down at all.
+  Nothing is uploaded, Settings shows what it has learned, and one button
+  erases it. It only touches the Top lane — Latest stays chronological.
 - **Headline reader** — a spoken briefing for anyone who cannot comfortably
   read a phone screen. It reads the ranked list in order, announcing position,
   headline, outlet and source count, with 48px transport controls and speed

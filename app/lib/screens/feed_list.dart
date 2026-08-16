@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models.dart';
 import '../motion.dart';
 import '../state.dart';
+import '../taste.dart';
 import '../theme.dart';
 import '../widgets/chrome.dart';
 import '../widgets/coverage_sheet.dart';
@@ -58,6 +59,12 @@ class _FeedListState extends ConsumerState<FeedList>
     super.dispose();
   }
 
+  Future<void> _openStory(Story story) {
+    // Choosing to read something is the strongest preference signal there is.
+    ref.read(tasteProvider.notifier).recordOpen(story);
+    return _open(story.url);
+  }
+
   Future<void> _open(String url) async {
     final settings = ref.read(settingsProvider);
     final uri = Uri.tryParse(url);
@@ -81,6 +88,7 @@ class _FeedListState extends ConsumerState<FeedList>
   }
 
   void _showCoverage(Story story) {
+    ref.read(tasteProvider.notifier).recordInspect(story);
     CoverageSheet.show(context, story, _open);
   }
 
@@ -156,7 +164,7 @@ class _FeedListState extends ConsumerState<FeedList>
               child: LeadStory(
                 story: lead,
                 label: widget.sectionLabel,
-                onTap: () => _open(lead.url),
+                onTap: () => _openStory(lead),
                 onCoverage: () => _showCoverage(lead),
               ),
             ),
@@ -173,7 +181,7 @@ class _FeedListState extends ConsumerState<FeedList>
               // inheriting a long queue delay from the top of the list.
               final tile = StoryTile(
                 story: story,
-                onTap: () => _open(story.url),
+                onTap: () => _openStory(story),
                 onCoverage: () => _showCoverage(story),
               );
               if (i > 0 && i % 10 == 0) {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models.dart';
 import '../state.dart';
+import '../taste.dart';
 import '../theme.dart';
 import '../widgets/chrome.dart';
 
@@ -16,6 +17,7 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final controller = ref.read(settingsProvider.notifier);
     final config = ref.watch(configProvider).valueOrNull ?? AppConfig.fallback;
+    final taste = ref.watch(tasteProvider);
 
     return SafeArea(
       bottom: false,
@@ -115,6 +117,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           _SectionHeader(
+            title: 'WHAT YOU READ',
+            note: 'NewsFin can learn which subjects you actually open and nudge '
+                'them up the Top list. It compares how often you open a subject '
+                'against how often it is offered, so it learns your taste rather '
+                'than the shape of the feed. It stays on this device.',
+          ),
+          _SwitchRow(
+            label: 'Learn from what I read',
+            note: 'Never moves a widely reported story down - big news stays '
+                'big whatever your habits.',
+            value: taste.enabled,
+            onChanged: ref.read(tasteProvider.notifier).setEnabled,
+          ),
+          _LearnedInterests(taste: taste),
+
+          _SectionHeader(
             title: 'HEADLINE READER',
             note: 'Reads the ranked headlines aloud, in order, so the briefing '
                 'works without looking at the screen. Start it from the Listen '
@@ -137,6 +155,105 @@ class SettingsScreen extends ConsumerWidget {
 
           _SectionHeader(title: 'ABOUT'),
           _AboutBlock(sourceCount: config.sourceCount),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shows the profile back to the reader, and lets them erase it.
+class _LearnedInterests extends ConsumerWidget {
+  const _LearnedInterests({required this.taste});
+
+  final TasteState taste;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = NewsTheme.of(context);
+    if (!taste.enabled) return const SizedBox.shrink();
+
+    if (!taste.ready) {
+      final remaining = TasteState.minimumOpens - taste.opens;
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(Gap.page, Gap.sm, Gap.page, Gap.sm),
+        child: Text(
+          remaining > 0
+              ? 'Still watching — $remaining more stories opened before this '
+                  'starts having any effect.'
+              : 'Not enough to go on yet.',
+          style: NewsType.meta.copyWith(color: c.textTertiary, height: 1.5),
+        ),
+      );
+    }
+
+    final learned = Taste(taste).learnedTopics();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Gap.page, Gap.sm, Gap.page, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (learned.isEmpty)
+            Text(
+              'No clear preferences yet — you read a bit of everything.',
+              style: NewsType.meta.copyWith(color: c.textTertiary, height: 1.5),
+            )
+          else ...[
+            Text(
+              'FROM ${taste.opens} STORIES YOU OPENED',
+              style: NewsType.eyebrow.copyWith(color: c.textTertiary, fontSize: 9.5),
+            ),
+            const SizedBox(height: Gap.md),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final item in learned.take(8))
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: item.lift > 1 ? c.accent : c.hairline,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.label[0].toUpperCase() + item.label.substring(1),
+                          style: NewsType.meta.copyWith(
+                            color: item.lift > 1 ? c.accent : c.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          item.lift > 1 ? 'more' : 'less',
+                          style: NewsType.numeric.copyWith(
+                            color: c.textTertiary,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: Gap.md),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => ref.read(tasteProvider.notifier).forget(),
+              style: TextButton.styleFrom(
+                foregroundColor: c.textSecondary,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 44),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text('FORGET WHAT I HAVE READ',
+                  style: NewsType.eyebrow.copyWith(color: c.textSecondary)),
+            ),
+          ),
         ],
       ),
     );

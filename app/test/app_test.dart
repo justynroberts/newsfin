@@ -4,6 +4,7 @@ import 'package:newsfin/models.dart';
 import 'package:newsfin/motion.dart';
 import 'package:newsfin/reader.dart';
 import 'package:newsfin/state.dart';
+import 'package:newsfin/taste.dart';
 import 'package:newsfin/theme.dart';
 import 'package:newsfin/widgets/chrome.dart';
 import 'package:newsfin/widgets/story_tile.dart';
@@ -403,6 +404,120 @@ void main() {
       ));
       await tester.tap(find.byType(IconAction));
       expect(tapped, isTrue);
+    });
+  });
+
+  group('Learning what you read', () {
+    /// A profile where `topic` is opened at `rate`, against a baseline where
+    /// everything else is opened 10% of the time.
+    TasteState profile({
+      required String topic,
+      required double rate,
+      int opens = 40,
+      bool enabled = true,
+    }) =>
+        TasteState(
+          enabled: enabled,
+          topicShown: {topic: 100, 'other': 100},
+          topicOpens: {topic: 100 * rate, 'other': 10},
+          sourceShown: const {'BBC News': 100},
+          sourceOpens: const {'BBC News': 10},
+          opens: opens,
+        );
+
+    test('measures lift, not volume', () {
+      // Opened 30 times out of 100 shown, against a 10% baseline: a real
+      // preference. Counting opens alone would have said the same about a
+      // topic simply because the feed publishes a lot of it.
+      final taste = Taste(profile(topic: 'tech', rate: 0.30));
+      expect(taste.topicLift('tech'), greaterThan(1.0));
+      expect(taste.topicLift('other'), lessThan(1.0));
+    });
+
+    test('a topic you skip is nudged down, not removed', () {
+      final taste = Taste(profile(topic: 'sport', rate: 0.01));
+      final lift = taste.topicLift('sport');
+      expect(lift, lessThan(1.0));
+      expect(lift, greaterThanOrEqualTo(0.8), reason: 'clamped, never buried');
+    });
+
+    test('does nothing until there is enough evidence', () {
+      final taste = Taste(profile(topic: 'tech', rate: 0.9, opens: 3));
+      expect(taste.multiplierFor(makeStory(sources: 2)), 1.0);
+    });
+
+    test('does nothing when switched off', () {
+      final taste = Taste(profile(topic: 'tech', rate: 0.9, enabled: false));
+      expect(taste.multiplierFor(makeStory(sources: 2)), 1.0);
+    });
+
+    test('widely reported news is never pushed down', () {
+      // The guarantee that keeps this an impact ranking rather than a bubble:
+      // if many independent newsrooms are running it, taste does not get a
+      // vote on burying it.
+      final taste = Taste(profile(topic: 'sport', rate: 0.0));
+      final big = Story.fromJson({
+        'id': 1, 'title': 'Huge story', 'url': 'x', 'source': 'BBC News',
+        'topics': ['sport'], 'sources': 25, 'impact': 90.0,
+        'published': DateTime.now().toUtc().toIso8601String(),
+      });
+      expect(taste.multiplierFor(big), greaterThanOrEqualTo(1.0));
+    });
+
+    test('the nudge is bounded so it cannot leapfrog a bigger story', () {
+      final taste = Taste(profile(topic: 'tech', rate: 1.0));
+      final loved = Story.fromJson({
+        'id': 1, 'title': 'Minor tech item', 'url': 'x', 'source': 'BBC News',
+        'topics': ['tech'], 'sources': 1, 'impact': 50.0,
+        'published': DateTime.now().toUtc().toIso8601String(),
+      });
+      final bigger = Story.fromJson({
+        'id': 2, 'title': 'Major story', 'url': 'y', 'source': 'Reuters',
+        'topics': ['world'], 'sources': 3, 'impact': 75.0,
+        'published': DateTime.now().toUtc().toIso8601String(),
+      });
+      final ranked = taste.rerank([bigger, loved]);
+      expect(ranked.first.id, 2, reason: '50 * 1.25 still loses to 75');
+    });
+
+    test('reranking is stable for stories it has no opinion about', () {
+      final taste = Taste(profile(topic: 'tech', rate: 0.3));
+      final stories = [
+        makeStory(id: 1, impact: 70),
+        makeStory(id: 2, impact: 70),
+        makeStory(id: 3, impact: 70),
+      ];
+      expect(taste.rerank(stories).map((s) => s.id), [1, 2, 3]);
+    });
+
+    test('a preferred story does climb among near-equals', () {
+      final taste = Taste(profile(topic: 'tech', rate: 0.4));
+      final plain = Story.fromJson({
+        'id': 1, 'title': 'Plain', 'url': 'x', 'source': 'Other',
+        'topics': ['other'], 'sources': 1, 'impact': 62.0,
+        'published': DateTime.now().toUtc().toIso8601String(),
+      });
+      final liked = Story.fromJson({
+        'id': 2, 'title': 'Tech', 'url': 'y', 'source': 'Other',
+        'topics': ['tech'], 'sources': 1, 'impact': 58.0,
+        'published': DateTime.now().toUtc().toIso8601String(),
+      });
+      expect(taste.rerank([plain, liked]).first.id, 2);
+    });
+
+    test('the profile round-trips through storage', () {
+      final restored = TasteState.fromJson(
+        profile(topic: 'tech', rate: 0.3).toJson(),
+      );
+      expect(restored.opens, 40);
+      expect(restored.topicOpens['tech'], 30);
+      expect(restored.enabled, isTrue);
+    });
+
+    test('learned interests are reportable back to the reader', () {
+      final learned = Taste(profile(topic: 'tech', rate: 0.4)).learnedTopics();
+      expect(learned.first.label, 'tech');
+      expect(learned.first.lift, greaterThan(1.0));
     });
   });
 

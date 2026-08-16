@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
 import 'models.dart';
+import 'taste.dart';
 
 final apiProvider = Provider<NewsApi>((ref) => NewsApi());
 
@@ -370,8 +371,11 @@ class FeedController extends StateNotifier<FeedState> {
             cacheKey: _query.cacheKey,
           );
       if (!mounted) return;
+      // Everything returned counts as shown, which is what makes the profile
+      // measure lift rather than just the shape of the feed.
+      _ref.read(tasteProvider.notifier).recordShown(feed.stories);
       state = FeedState(
-        stories: feed.stories,
+        stories: _personalise(feed.stories),
         generatedAt: feed.generatedAt,
         exhausted: feed.stories.length < _pageSize,
       );
@@ -405,8 +409,11 @@ class FeedController extends StateNotifier<FeedState> {
       if (!mounted) return;
       final seen = state.stories.map((s) => s.id).toSet();
       final fresh = feed.stories.where((s) => !seen.contains(s.id)).toList();
+      _ref.read(tasteProvider.notifier).recordShown(fresh);
       state = state.copyWith(
-        stories: [...state.stories, ...fresh],
+        // Only the new page is reordered: resorting the whole list under the
+        // reader mid-scroll would move stories they were about to tap.
+        stories: [...state.stories, ..._personalise(fresh)],
         refreshing: false,
         exhausted: fresh.length < _pageSize,
         clearError: true,
@@ -415,6 +422,14 @@ class FeedController extends StateNotifier<FeedState> {
       if (!mounted) return;
       state = state.copyWith(refreshing: false);
     }
+  }
+
+  /// Applies the on-device profile - but only to the impact lane. Latest is
+  /// chronological by contract, and reordering it by taste would quietly make
+  /// it something else.
+  List<Story> _personalise(List<Story> stories) {
+    if (_query.sort != FeedSort.top) return stories;
+    return Taste(_ref.read(tasteProvider)).rerank(stories);
   }
 
   Future<void> refresh() => load(silent: true);
