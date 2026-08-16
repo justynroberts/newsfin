@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../motion.dart';
 import '../theme.dart';
+import 'chrome.dart';
 
 /// The house-style info affordance, present on every screen.
 ///
@@ -18,28 +19,10 @@ class AboutButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = NewsTheme.of(context);
-    return Semantics(
-      button: true,
+    return IconAction(
+      icon: Icons.info_outline_rounded,
       label: 'About this app',
-      child: Tooltip(
-        message: 'About this app',
-        child: InkWell(
-          onTap: () => AboutPanel.show(context, sourceCount),
-          borderRadius: BorderRadius.circular(20),
-          focusColor: c.accent.withValues(alpha: 0.2),
-          child: Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: c.hairline),
-            ),
-            child: Icon(Icons.info_outline_rounded, size: 15, color: c.textSecondary),
-          ),
-        ),
-      ),
+      onTap: () => AboutPanel.show(context, sourceCount),
     );
   }
 }

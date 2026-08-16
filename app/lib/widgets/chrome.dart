@@ -138,11 +138,15 @@ class Masthead extends ConsumerWidget {
     required this.dateline,
     this.trailing,
     this.subtitle,
+    this.actions = const [],
   });
 
   final String dateline;
   final Widget? trailing;
   final String? subtitle;
+
+  /// Icon controls shown before the About button.
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,9 +175,71 @@ class Masthead extends ConsumerWidget {
             ],
           ),
           const Spacer(),
-          if (trailing != null) ...[trailing!, const SizedBox(width: Gap.sm)],
+          if (trailing != null) ...[trailing!, const SizedBox(width: 6)],
+          for (final action in actions) ...[action, const SizedBox(width: 6)],
           AboutButton(sourceCount: config.sourceCount),
         ],
+      ),
+    );
+  }
+}
+
+/// A header control: icon only, and big enough to actually hit.
+///
+/// The header used to carry two labelled pill buttons ("LISTEN", "MIX") plus a
+/// 32px info circle. That was three different shapes competing with the
+/// masthead, and every one of them was under the 44pt/48dp minimum touch
+/// target. Icons at a consistent 44 square read as one set of controls and
+/// leave the wordmark as the only text up there.
+///
+/// Icon-only means the label has to live somewhere, so every action carries a
+/// tooltip *and* a semantic label.
+class IconAction extends StatelessWidget {
+  const IconAction({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  /// Filled with the accent colour - used while the reader is speaking, so the
+  /// control shows its state without needing a word.
+  final bool active;
+
+  static const double size = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NewsTheme.of(context);
+    return Semantics(
+      button: true,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: size,
+            height: size,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? c.accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: active ? c.accent : c.hairline),
+            ),
+            child: Icon(icon, size: 20, color: active ? c.canvas : c.textSecondary),
+          ),
+        ),
       ),
     );
   }
@@ -211,7 +277,11 @@ class LaneSwitch extends StatelessWidget {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+                // 44 tall: these are words rather than icons, but they are
+                // still a control and were previously a 28px target.
+                constraints: const BoxConstraints(minHeight: 44),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -223,7 +293,7 @@ class LaneSwitch extends StatelessWidget {
                 child: Text(
                   lane.label.toUpperCase(),
                   style: NewsType.eyebrow.copyWith(
-                    fontSize: 10,
+                    fontSize: 11.5,
                     color: lane == sort ? c.textPrimary : c.textTertiary,
                   ),
                 ),

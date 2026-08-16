@@ -8,11 +8,14 @@ import '../models.dart';
 import '../motion.dart';
 import '../reader.dart';
 import '../theme.dart';
+import 'chrome.dart';
 
 /// Starts the spoken briefing.
 ///
-/// Deliberately a wide, labelled control rather than a small icon: the people
-/// who need it most are the people least able to hit a 24px target.
+/// Icon only. It used to be a labelled pill, which made the header three
+/// competing shapes; as one of a set of equal 44px icons it reads as a
+/// control rather than an advert, and the label survives in the tooltip and
+/// the semantic label.
 class ListenButton extends ConsumerWidget {
   const ListenButton({super.key, required this.stories});
 
@@ -20,7 +23,6 @@ class ListenButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = NewsTheme.of(context);
     final reader = ref.watch(readerProvider);
     // Only hidden once speech has been tried and failed - never on a startup
     // probe, which cannot succeed before the user has interacted at all.
@@ -29,48 +31,11 @@ class ListenButton extends ConsumerWidget {
     // nothing at all, which is worse than not offering it.
     if (stories.isEmpty && !reader.active) return const SizedBox.shrink();
 
-    final playing = reader.playing;
-
-    return Semantics(
-      button: true,
-      label: playing ? 'Pause reading headlines' : 'Listen to the headlines',
-      child: Tooltip(
-        message: playing ? 'Pause' : 'Listen to the headlines',
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            ref.read(readerProvider.notifier).toggle(stories);
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 40),
-            padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: Gap.sm),
-            decoration: BoxDecoration(
-              color: playing ? c.accent : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: playing ? c.accent : c.hairline),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  playing ? Icons.pause_rounded : Icons.headphones_rounded,
-                  size: 15,
-                  color: playing ? c.canvas : c.textSecondary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  playing ? 'PAUSE' : 'LISTEN',
-                  style: NewsType.eyebrow.copyWith(
-                    color: playing ? c.canvas : c.textSecondary,
-                    fontSize: 9.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return IconAction(
+      icon: reader.playing ? Icons.pause_rounded : Icons.headphones_rounded,
+      label: reader.playing ? 'Pause reading headlines' : 'Listen to the headlines',
+      active: reader.playing,
+      onTap: () => ref.read(readerProvider.notifier).toggle(stories),
     );
   }
 }

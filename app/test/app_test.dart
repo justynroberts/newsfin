@@ -5,6 +5,7 @@ import 'package:newsfin/motion.dart';
 import 'package:newsfin/reader.dart';
 import 'package:newsfin/state.dart';
 import 'package:newsfin/theme.dart';
+import 'package:newsfin/widgets/chrome.dart';
 import 'package:newsfin/widgets/story_tile.dart';
 
 Story makeStory({
@@ -335,6 +336,73 @@ void main() {
     test('source announcement can be turned off entirely', () {
       final line = spokenLine(makeStory(title: 'A headline'), 2, announceSources: false);
       expect(line, '2. A headline.');
+    });
+  });
+
+  group('Header controls', () {
+    // Measured from the rendered widget, not from the constants that produced
+    // it: the header controls were 32-40px and the lane switch 28px, all below
+    // the 44pt/48dp minimum and all fiddly on a phone.
+    const minTarget = 44.0;
+
+    testWidgets('every header icon meets the minimum touch target',
+        (tester) async {
+      await tester.pumpWidget(wrap(Row(children: [
+        IconAction(icon: Icons.headphones_rounded, label: 'Listen', onTap: () {}),
+        IconAction(icon: Icons.tune_rounded, label: 'Mix', onTap: () {}),
+        IconAction(icon: Icons.info_outline_rounded, label: 'About', onTap: () {}),
+      ])));
+
+      final found = find.byType(IconAction);
+      expect(found, findsNWidgets(3));
+      for (var i = 0; i < 3; i++) {
+        final size = tester.getSize(found.at(i));
+        expect(size.width, greaterThanOrEqualTo(minTarget), reason: 'width of icon $i');
+        expect(size.height, greaterThanOrEqualTo(minTarget), reason: 'height of icon $i');
+      }
+    });
+
+    testWidgets('an icon-only control still announces itself', (tester) async {
+      // Dropping the label means the name has to survive somewhere.
+      await tester.pumpWidget(wrap(
+        IconAction(icon: Icons.headphones_rounded, label: 'Listen to the headlines', onTap: () {}),
+      ));
+      expect(
+        tester.getSemantics(find.byType(IconAction)).label,
+        contains('Listen to the headlines'),
+      );
+    });
+
+    testWidgets('the active state is carried by colour, not a word',
+        (tester) async {
+      await tester.pumpWidget(wrap(Column(children: [
+        IconAction(icon: Icons.pause_rounded, label: 'Pause', active: true, onTap: () {}),
+        IconAction(icon: Icons.headphones_rounded, label: 'Listen', onTap: () {}),
+      ])));
+      final boxes = tester
+          .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+          .toList();
+      final decorations =
+          boxes.map((b) => b.decoration as BoxDecoration).toList();
+      expect(decorations.first.color, NewsColors.dark.accent);
+      expect(decorations.last.color, Colors.transparent);
+    });
+
+    testWidgets('the lane switch is a real target too', (tester) async {
+      await tester.pumpWidget(wrap(
+        LaneSwitch(sort: FeedSort.latest, onChanged: (_) {}),
+      ));
+      final size = tester.getSize(find.byType(LaneSwitch));
+      expect(size.height, greaterThanOrEqualTo(minTarget));
+    });
+
+    testWidgets('tapping an icon fires its action', (tester) async {
+      var tapped = false;
+      await tester.pumpWidget(wrap(
+        IconAction(icon: Icons.tune_rounded, label: 'Mix', onTap: () => tapped = true),
+      ));
+      await tester.tap(find.byType(IconAction));
+      expect(tapped, isTrue);
     });
   });
 
