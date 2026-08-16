@@ -29,6 +29,11 @@ ingest:  ## run one full fetch/cluster/score pass against the dev database
 web:  ## rebuild the Flutter web bundle into server/static (commit the result)
 	cd app && flutter build web --release --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
 	rm -rf server/static && cp -r app/build/web server/static
+	@# Written after the build on purpose: it is absent from the service
+	@# worker's resource manifest, so the worker never caches it and the
+	@# client always sees the truth about what the server is serving.
+	@printf '{"id":"%s"}\n' "$$(date -u +%Y%m%dT%H%M%SZ)" > server/static/build-id.json
+	@echo "build id: $$(cat server/static/build-id.json)"
 
 docker-build:  ## build the deployment image
 	docker build -t newsfin:local .

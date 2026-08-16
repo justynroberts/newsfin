@@ -337,5 +337,122 @@
       });
     });
   </script>
+
+  <script>
+    // Ship updates to an installed PWA.
+    //
+    // Flutter's service worker installs a new build and then *waits* until
+    // every instance of the app is closed before taking over. A phone's home
+    // screen app is essentially never fully closed, so a returning reader sits
+    // on an old build while the server happily serves the current one - which
+    // is exactly what happened here: the bundle was deployed and correct, and
+    // the app on the phone did not have it.
+    //
+    // So: promote a waiting worker immediately, and reload once it takes over.
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+
+      var reloading = false;
+      // Only true once we have asked a *replacement* worker to take over. The
+      // first install also fires controllerchange, on a page already showing
+      // the current build - reloading there would be a pointless flash.
+      var replacing = false;
+
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!replacing || reloading) return;
+        reloading = true;
+        window.location.reload();
+      });
+
+      navigator.serviceWorker.ready.then(function (registration) {
+        function promote(worker) {
+          if (!worker) return;
+          replacing = true;
+          worker.postMessage('skipWaiting');
+        }
+
+        // A build that landed while the app was closed is already waiting.
+        promote(registration.waiting);
+
+        registration.addEventListener('updatefound', function () {
+          var installing = registration.installing;
+          if (!installing) return;
+          installing.addEventListener('statechange', function () {
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+              promote(installing);
+            }
+          });
+        });
+
+        // Check for a new build whenever the app returns to the front, which
+        // for a news app read every morning is the moment that matters.
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') {
+            registration.update().catch(function () {});
+          }
+        });
+      }).catch(function () {
+        // No service worker (private mode, unsupported browser). The app still
+        // works, it just fetches from the network each time.
+      });
+    })();
+
+    // Belt and braces: an explicit build stamp.
+    //
+    // The service worker dance above depends on Flutter's worker behaving, and
+    // it does not reliably: it serves index.html from its own cache, so the
+    // page never even sees the new ?v= that would trigger an update, and it
+    // never calls clients.claim(), so a promoted worker does not take over an
+    // open page. An installed PWA can therefore sit on an old build through
+    // any number of reloads - which is exactly what happened.
+    //
+    // build-id.json is written after the Flutter build, so it is absent from
+    // the worker's resource manifest and always comes from the network. If it
+    // has changed, clear the caches and reload: deterministic, and it does not
+    // rely on any of the above working.
+    (function () {
+      var KEY = 'newsfin.build';
+
+      function check() {
+        fetch('build-id.json', { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (!data || !data.id) return;
+            var known = null;
+            try { known = localStorage.getItem(KEY); } catch (e) { return; }
+
+            if (known && known !== data.id) {
+              // Record the new id *before* reloading, so a failure to clear
+              // caches cannot turn this into a reload loop.
+              try { localStorage.setItem(KEY, data.id); } catch (e) {}
+              purge().then(function () { window.location.reload(); });
+              return;
+            }
+            try { localStorage.setItem(KEY, data.id); } catch (e) {}
+          })
+          .catch(function () { /* offline: keep whatever is installed */ });
+      }
+
+      function purge() {
+        var jobs = [];
+        if (window.caches && caches.keys) {
+          jobs.push(caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+          }));
+        }
+        if ('serviceWorker' in navigator) {
+          jobs.push(navigator.serviceWorker.getRegistrations().then(function (regs) {
+            return Promise.all(regs.map(function (r) { return r.unregister(); }));
+          }));
+        }
+        return Promise.all(jobs).catch(function () {});
+      }
+
+      check();
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') check();
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -434,7 +434,7 @@ async def cache_headers(request, call_next):
     response = await call_next(request)
     path = request.url.path
 
-    if path.startswith("/api/") or path == "/healthz":
+    if path.startswith("/api/") or path in ("/healthz", "/build-id.json"):
         response.headers["Cache-Control"] = "no-store"
     elif any(path.startswith(p) for p in IMMUTABLE_PREFIXES):
         response.headers["Cache-Control"] = f"public, max-age={IMMUTABLE_MAX_AGE}, immutable"
