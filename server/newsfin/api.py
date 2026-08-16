@@ -280,7 +280,15 @@ def headlines(
         f"ORDER BY {order_by} LIMIT ? OFFSET ?"
     )
 
-    if sort == "latest":
+    # Both lanes get a per-outlet cap, but a looser one for Top: five of the
+    # top ten came from a single newsroom, which reads as that outlet's front
+    # page rather than the day's news. Three still lets a paper that genuinely
+    # owns the day lead it.
+    if sort == "top":
+        window = min(600, offset + limit * 3)
+        raw = conn.execute(sql, [*params, window, 0]).fetchall()
+        rows = _diversify(raw, per_source=3)[offset : offset + limit]
+    elif sort == "latest":
         # Order alone is not enough here. A handful of outlets publish in
         # bursts and stamp the whole burst with the same minute, so a purely
         # chronological lane showed eight of its first ten from one newsroom -

@@ -234,3 +234,32 @@ class TestUndatedEntries:
         undated = impact(distinct_sources=3, published=_undated_fallback([]))
         fresh = impact(distinct_sources=3, published=datetime.now(UTC))
         assert fresh > undated
+
+
+class TestLiveBlogs:
+    """A live blog re-saves itself all day, so its published time keeps moving.
+
+    With recency worth a third of the score, two football live blogs had taken
+    up residence in the top ten - not because anything happened, but because
+    the page had been touched.
+    """
+
+    def test_trailing_live_marker_is_recognised(self):
+        assert scoring.is_live_blog("Arsenal v Manchester City - live")
+        assert scoring.is_live_blog("Burnley v West Ham: Championship – live")
+        assert scoring.is_live_blog("Ukraine war live updates: strikes reported")
+        assert scoring.is_live_blog("England v India: as it happened")
+
+    def test_a_real_story_that_merely_says_live_is_untouched(self):
+        assert not scoring.is_live_blog("Live music venue closes after 40 years")
+        assert not scoring.is_live_blog("Harwich fire - live: huge blaze fills sky")
+
+    def test_a_live_blog_ranks_below_the_same_story_reported_straight(self):
+        blog = impact(distinct_sources=5, title="Arsenal v Manchester City - live")
+        report = impact(distinct_sources=5, title="Arsenal beat Manchester City in shield")
+        assert report > blog
+
+    def test_live_is_no_longer_treated_as_urgency(self):
+        # It used to sit in the severity lexicon at 0.3, quietly rewarding
+        # every live blog for saying the word.
+        assert "live" not in scoring.SEVERITY

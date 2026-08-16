@@ -40,7 +40,7 @@ SEVERITY: dict[str, float] = {
     "tariffs": 0.75, "crisis": 0.85, "shortage": 0.7, "bankrupt": 0.75,
     "collapsed": 0.8, "plunge": 0.65, "surge": 0.5,
     # markers of editorial urgency
-    "breaking": 0.7, "urgent": 0.7, "warning": 0.6, "alert": 0.6, "live": 0.3,
+    "breaking": 0.7, "urgent": 0.7, "warning": 0.6, "alert": 0.6,
 }
 
 # Noise the score should actively push down the page.
@@ -77,6 +77,22 @@ _WEAK_LEAD = re.compile(
     r"|blog|liveblog|updates|photos|photo essay|briefing|newsletter)\b[\s:|—–-]",
     re.IGNORECASE,
 )
+
+
+# A live blog keeps its published time moving as it is updated, so with recency
+# worth a third of the score it floats indefinitely - two football live blogs
+# had taken residence in the top ten. The marker is usually a trailing "- live"
+# rather than a leading one, which the weak-lead pattern below never caught.
+_LIVE_BLOG = re.compile(
+    r"(\s[-|–—:]\s*live\s*$|\blive\s+(updates|blog|coverage|reaction)\b"
+    r"|\bas it happened\b|\bliveblog\b|\brolling coverage\b)",
+    re.IGNORECASE,
+)
+
+
+def is_live_blog(title: str) -> bool:
+    """A continuously updated page rather than a new story."""
+    return bool(_LIVE_BLOG.search(title))
 
 
 def is_junk(title: str) -> bool:
@@ -207,6 +223,12 @@ def impact(
 
     penalty = noise_penalty(title)
     base *= 1.0 - 0.55 * penalty
+
+    # Damp live blogs rather than dropping them: the story is often real, but
+    # its freshness is an artefact of the page being re-saved, not of anything
+    # happening.
+    if is_live_blog(title):
+        base *= 0.62
 
     # A story carried by a lone low-authority outlet should not reach the top
     # of a morning briefing no matter how lurid the headline.
