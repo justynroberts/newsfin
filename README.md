@@ -3,7 +3,7 @@
 Impact-ranked world news. Headlines only, no pictures, straight through to the
 article.
 
-NewsFin polls ~280 RSS feeds from newsrooms across the UK, Ireland, Europe, the
+NewsFin polls ~330 RSS feeds from newsrooms across the UK, Ireland, Europe, the
 US and the rest of the world, works out which of them are covering *the same
 story*, and orders the result by how much it actually matters — not by how
 recently it was published.
@@ -16,7 +16,7 @@ recently it was published.
 
 The dominant signal is **corroboration**: how many independent newsrooms have
 each decided, separately, that a story is worth their front page. That is a
-real editorial vote aggregated across 280 outlets, and it is very hard to game.
+real editorial vote aggregated across 330 outlets, and it is very hard to game.
 
 A story's impact score blends:
 
@@ -46,12 +46,12 @@ Commerce, puzzle answers and horoscopes are dropped at ingest. Feeds that
 republish rather than report (Google News) count as a third of a newsroom.
 
 Each reader then reweights it. Set Local and UK to *Top* and Europe to *Off*
-and the same 280 feeds reorder around you — without burying a genuinely huge
+and the same 330 feeds reorder around you — without burying a genuinely huge
 World story.
 
 ## How stories get grouped
 
-Grouping the same event across 280 differently-worded headlines is the whole
+Grouping the same event across 330 differently-worded headlines is the whole
 trick, and it runs in milliseconds — no embeddings, no model.
 
 1. **Normalise** — strip accents, publisher suffixes, dates and bare numbers.
@@ -140,6 +140,20 @@ minutes, the full set every 12, using ETag/Last-Modified so most polls cost a
 ```bash
 make docker-build && make docker-run
 ```
+
+## How long articles are kept
+
+| Stage | Window |
+|---|---|
+| Ingested | entries published in the last **4 days** |
+| Retained | articles are pruned at **5 days**; a cluster dies with its last article |
+| Story matching | a new headline is only compared against clusters from the last **72h** |
+| Readable in the app | 12h / 24h / 48h / 4 days, set in Settings (API allows up to 5 days) |
+
+Short on purpose. The ranking is built on corroboration, and an indefinitely
+growing cluster would keep accumulating sources long after the story stopped
+mattering — the retention window is what keeps those counts honest. It also
+keeps the database to tens of megabytes.
 
 ## Feed health
 

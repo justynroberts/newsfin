@@ -74,6 +74,18 @@ LOCALES = {
     "newcastle": "North East",
     "bristol": "Bristol & West",
     "nottingham": "Nottinghamshire",
+    "derbyshire": "Derbyshire",
+    "leicestershire": "Leicestershire",
+    "staffordshire": "Staffordshire",
+    "lancashire": "Lancashire",
+    "teesside": "Teesside",
+    "hull": "Hull & East Yorkshire",
+    "northyorkshire": "North Yorkshire",
+    "gloucestershire": "Gloucestershire",
+    "oxfordshire": "Oxfordshire",
+    "essex": "Essex",
+    "surrey": "Surrey",
+    "dorset": "Dorset",
     "kent": "Kent",
     "sussex": "Sussex",
     "hampshire": "Hampshire",
@@ -226,6 +238,25 @@ SOURCES: list[Source] = [
     S("nation-cymru", "Nation.Cymru", "https://nation.cymru/feed/", "local", ["top"], 0.58, locale="wales"),
     S("belfasttelegraph", "Belfast Telegraph", "https://www.belfasttelegraph.co.uk/rss/", "local", ["top"], 0.66, locale="ni"),
     S("newsletter-ni", "News Letter", "https://www.newsletter.co.uk/rss", "local", ["top"], 0.6, locale="ni"),
+
+    # ------------------------------------------------------------------
+    # UK local - filling in the counties that had no coverage at all
+    # ------------------------------------------------------------------
+    S("hulllive", "Hull Live", "https://www.hulldailymail.co.uk/news/?service=rss", "local", ["top"], 0.55, locale="hull"),
+    S("stokesentinel", "Stoke Sentinel", "https://www.stokesentinel.co.uk/news/?service=rss", "local", ["top"], 0.55, locale="staffordshire"),
+    S("derbyshirelive", "Derbyshire Live", "https://www.derbytelegraph.co.uk/news/?service=rss", "local", ["top"], 0.55, locale="derbyshire"),
+    S("leicestermercury", "Leicestershire Live", "https://www.leicestermercury.co.uk/news/?service=rss", "local", ["top"], 0.55, locale="leicestershire"),
+    S("gloucestershirelive", "Gloucestershire Live", "https://www.gloucestershirelive.co.uk/news/?service=rss", "local", ["top"], 0.55, locale="gloucestershire"),
+    S("essexlive", "Essex Live", "https://www.essexlive.news/news/?service=rss", "local", ["top"], 0.55, locale="essex"),
+    S("surreylive", "Surrey Live", "https://www.getsurrey.co.uk/news/?service=rss", "local", ["top"], 0.55, locale="surrey"),
+    S("lancslive", "Lancs Live", "https://www.lancs.live/news/?service=rss", "local", ["top"], 0.55, locale="lancashire"),
+    S("teessidelive", "Teesside Live", "https://www.gazettelive.co.uk/news/?service=rss", "local", ["top"], 0.55, locale="teesside"),
+    S("belfastlive", "Belfast Live", "https://www.belfastlive.co.uk/news/?service=rss", "local", ["top"], 0.58, locale="ni"),
+    S("northernecho", "The Northern Echo", "https://www.thenorthernecho.co.uk/news/rss/", "local", ["top"], 0.6, locale="newcastle"),
+    S("oxfordmail", "Oxford Mail", "https://www.oxfordmail.co.uk/news/rss/", "local", ["top"], 0.56, locale="oxfordshire"),
+    S("yorkpress", "The York Press", "https://www.yorkpress.co.uk/news/rss/", "local", ["top"], 0.56, locale="northyorkshire"),
+    S("bournemouthecho", "Bournemouth Echo", "https://www.bournemouthecho.co.uk/news/rss/", "local", ["top"], 0.56, locale="dorset"),
+    S("boltonnews", "The Bolton News", "https://www.theboltonnews.co.uk/news/rss/", "local", ["top"], 0.55, locale="manchester"),
 
     # ------------------------------------------------------------------
     # Ireland
@@ -414,6 +445,52 @@ SOURCES: list[Source] = [
     S("jpost", "The Jerusalem Post", "https://www.jpost.com/rss/rssfeedsfrontpage.aspx", "world", ["security"], 0.7),
     S("dailymaverick", "Daily Maverick", "https://www.dailymaverick.co.za/dmrss/", "world", ["top"], 0.72),
     S("premiumtimes", "Premium Times", "https://www.premiumtimesng.com/feed", "world", ["top"], 0.68),
+
+    # ------------------------------------------------------------------
+    # Europe - Nordics, Baltics and Central Europe
+    # ------------------------------------------------------------------
+    S("thelocal-se", "The Local Sweden", "https://www.thelocal.se/feeds/rss.php", "eu", ["top"], 0.62),
+    S("thelocal-dk", "The Local Denmark", "https://www.thelocal.dk/feeds/rss.php", "eu", ["top"], 0.62),
+    S("thelocal-no", "The Local Norway", "https://www.thelocal.no/feeds/rss.php", "eu", ["top"], 0.62),
+    S("errnews", "ERR News", "https://news.err.ee/rss", "eu", ["top"], 0.7),
+    S("lsm", "LSM Latvia", "https://eng.lsm.lv/rss/", "eu", ["top"], 0.7),
+    S("hungarytoday", "Hungary Today", "https://hungarytoday.hu/feed/", "eu", ["politics"], 0.6),
+    S("spectator-sk", "The Slovak Spectator", "https://spectator.sme.sk/rss", "eu", ["top"], 0.64),
+    S("totalcroatia", "Total Croatia News", "https://total-croatia-news.com/feed/", "eu", ["top"], 0.58),
+    S("olivepress", "The Olive Press", "https://www.theolivepress.es/feed/", "eu", ["top"], 0.56),
+    S("sifted", "Sifted", "https://sifted.eu/feed", "eu", ["business", "tech"], 0.68),
+
+    # ------------------------------------------------------------------
+    # Asia-Pacific and the Americas - wider than the wires alone
+    # ------------------------------------------------------------------
+    S("hindustantimes", "Hindustan Times", "https://www.hindustantimes.com/feeds/rss/world-news/rssfeed.xml", "world", ["top"], 0.68),
+    S("indianexpress", "The Indian Express", "https://indianexpress.com/section/world/feed/", "world", ["top"], 0.7),
+    S("ndtv", "NDTV", "https://feeds.feedburner.com/ndtvnews-world-news", "world", ["top"], 0.66),
+    S("koreatimes", "The Korea Times", "https://www.koreatimes.co.kr/www/rss/nation.xml", "world", ["top"], 0.66),
+    S("taipeitimes", "Taipei Times", "https://www.taipeitimes.com/xml/index.rss", "world", ["top"], 0.68),
+    S("vnexpress", "VnExpress", "https://e.vnexpress.net/rss/news.rss", "world", ["top"], 0.62),
+    S("rappler", "Rappler", "https://www.rappler.com/feed/", "world", ["top"], 0.7),
+    S("malaymail", "Malay Mail", "https://www.malaymail.com/feed/rss", "world", ["top"], 0.62),
+    S("egyptindependent", "Egypt Independent", "https://www.egyptindependent.com/feed/", "world", ["top"], 0.64),
+    S("nationalpost", "National Post", "https://nationalpost.com/feed/", "world", ["top"], 0.7),
+    S("theage", "The Age", "https://www.theage.com.au/rss/world.xml", "world", ["top"], 0.76),
+    S("stuff-nz", "Stuff", "https://www.stuff.co.nz/rss", "world", ["top"], 0.68),
+    S("mexiconewsdaily", "Mexico News Daily", "https://mexiconewsdaily.com/feed/", "world", ["top"], 0.62),
+    S("colombiareports", "Colombia Reports", "https://colombiareports.com/feed/", "world", ["top"], 0.6),
+
+    # ------------------------------------------------------------------
+    # Specialist desks
+    # ------------------------------------------------------------------
+    S("kffhealth", "KFF Health News", "https://kffhealthnews.org/feed/", "us", ["health"], 0.8),
+    S("quanta", "Quanta Magazine", "https://api.quantamagazine.org/feed/", "world", ["science"], 0.84),
+    S("livescience", "Live Science", "https://www.livescience.com/feeds/all", "us", ["science"], 0.62),
+    S("climatehome", "Climate Home News", "https://www.climatechangenews.com/feed/", "world", ["environment"], 0.76),
+    S("darkreading", "Dark Reading", "https://www.darkreading.com/rss.xml", "us", ["security", "tech"], 0.74),
+    S("securityweek", "SecurityWeek", "https://www.securityweek.com/feed/", "us", ["security", "tech"], 0.72),
+    S("schneier", "Schneier on Security", "https://www.schneier.com/feed/atom/", "us", ["security"], 0.8),
+    S("conversation-us", "The Conversation US", "https://theconversation.com/us/articles.atom", "us", ["science"], 0.75),
+    S("conversation-au", "The Conversation AU", "https://theconversation.com/au/articles.atom", "world", ["science"], 0.75),
+    S("conversation-africa", "The Conversation Africa", "https://theconversation.com/africa/articles.atom", "world", ["science"], 0.75),
 
     # ------------------------------------------------------------------
     # Entertainment - film and television
