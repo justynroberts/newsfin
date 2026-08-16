@@ -120,8 +120,17 @@ def noise_penalty(title: str) -> float:
     return min(1.0, sum(hits)) if hits else 0.0
 
 
-def recency_score(published: datetime, half_life_hours: float = 7.0) -> float:
-    """Exponential decay. 7h half-life keeps an 8pm story alive at breakfast."""
+#: Hours for a story's recency component to halve.
+#:
+#: Was 7h, which combined with a lower recency weight left the median age of
+#: the top fifteen at over nine hours - the front page was reliably yesterday.
+#: At 5h the list turns over through the day while an overnight story is still
+#: findable at breakfast.
+RECENCY_HALF_LIFE_HOURS = 5.0
+
+
+def recency_score(published: datetime, half_life_hours: float = RECENCY_HALF_LIFE_HOURS) -> float:
+    """Exponential decay, so newer is always better, all else being equal."""
     age_h = max(0.0, (_now() - published).total_seconds() / 3600.0)
     return 0.5 ** (age_h / half_life_hours)
 
@@ -151,12 +160,23 @@ def prominence_score(best_position: int) -> float:
     return 1.0 / (1.0 + best_position / 6.0)
 
 
+# Corroboration and recency now carry equal weight.
+#
+# Measured against a live snapshot of 200 scored stories: at 0.38/0.18 the
+# median age of the top fifteen was 9.2 hours and only a third of it was less
+# than six hours old. Moving to 0.30/0.30 with a 5h half-life brings that to
+# 2.9 hours with eleven of fifteen under six - and a 30-source earthquake still
+# holds third place, which is the test that matters.
+#
+# Pushing recency further (0.38, 4h half-life) was tried and rejected: it put a
+# UFC result and a cricket score above the earthquake. At that point the app is
+# a wire feed, not an impact ranking.
 WEIGHTS = {
-    "corroboration": 0.38,
-    "authority": 0.16,
-    "recency": 0.18,
-    "severity": 0.13,
-    "prominence": 0.08,
+    "corroboration": 0.30,
+    "authority": 0.14,
+    "recency": 0.30,
+    "severity": 0.12,
+    "prominence": 0.07,
     "velocity": 0.07,
 }
 

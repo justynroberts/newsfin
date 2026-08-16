@@ -85,6 +85,38 @@ class TestQuality:
         assert impact(best_position=0) > impact(best_position=40)
 
 
+class TestRecencyCarriesRealWeight:
+    """Recency is a third of the score, not a tie-breaker.
+
+    At the original 0.18/7h the median age of the top fifteen was over nine
+    hours - the front page was reliably yesterday's news.
+    """
+
+    def test_recency_matters_as_much_as_corroboration(self):
+        assert scoring.WEIGHTS["recency"] == scoring.WEIGHTS["corroboration"]
+
+    def test_a_few_hours_old_is_clearly_behind_fresh(self):
+        fresh = impact(distinct_sources=4, published=datetime.now(UTC))
+        stale = impact(
+            distinct_sources=4, published=datetime.now(UTC) - timedelta(hours=10)
+        )
+        # Not a rounding difference - a visible gap.
+        assert fresh - stale > 8
+
+    def test_yesterdays_story_needs_far_more_coverage_to_hold_the_top(self):
+        yesterday_big = impact(
+            distinct_sources=20,
+            published=datetime.now(UTC) - timedelta(hours=20),
+            sources_last_hour=0,
+        )
+        today_moderate = impact(
+            distinct_sources=5,
+            published=datetime.now(UTC) - timedelta(hours=1),
+            sources_last_hour=2,
+        )
+        assert today_moderate > yesterday_big
+
+
 class TestRecency:
     def test_newer_wins_all_else_equal(self):
         assert impact(published=datetime.now(UTC)) > impact(
@@ -92,9 +124,10 @@ class TestRecency:
         )
 
     def test_overnight_news_survives_until_breakfast(self):
-        """An 11pm story must still be readable at 7am - that is the app's
-        entire premise."""
-        assert scoring.recency_score(datetime.now(UTC) - timedelta(hours=8)) > 0.4
+        """An 11pm story must still be findable at 7am. With a 5h half-life it
+        is well down the decay curve, so it has to earn its place on
+        corroboration - which is the intended trade."""
+        assert scoring.recency_score(datetime.now(UTC) - timedelta(hours=8)) > 0.25
 
     def test_future_dates_do_not_win(self):
         assert scoring.recency_score(datetime.now(UTC) + timedelta(hours=5)) <= 1.0
@@ -174,3 +207,30 @@ class TestGeography:
         assert geo.resolve_region(
             "UK and Germany sign new defence agreement", "uk"
         ) == "uk"
+
+
+class TestUndatedEntries:
+    """About 2% of entries arrive with no usable timestamp.
+
+    Stamping those with the fetch time told the ranking they had just broken,
+    and they monopolised both the Top and Latest lanes.
+    """
+
+    def test_an_undated_entry_inherits_the_oldest_date_in_its_feed(self):
+        from newsfin.fetcher import _undated_fallback
+
+        now = datetime.now(UTC)
+        dated = [now - timedelta(hours=1), now - timedelta(hours=9)]
+        assert _undated_fallback(dated) == now - timedelta(hours=9)
+
+    def test_a_wholly_undated_feed_does_not_claim_to_be_breaking(self):
+        from newsfin.fetcher import _undated_fallback
+
+        assert (datetime.now(UTC) - _undated_fallback([])) >= timedelta(hours=11)
+
+    def test_an_undated_entry_scores_below_a_genuinely_fresh_one(self):
+        from newsfin.fetcher import _undated_fallback
+
+        undated = impact(distinct_sources=3, published=_undated_fallback([]))
+        fresh = impact(distinct_sources=3, published=datetime.now(UTC))
+        assert fresh > undated

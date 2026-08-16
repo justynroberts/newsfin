@@ -262,6 +262,28 @@ void main() {
       expect(plain.cacheKey, isNot(mine.cacheKey));
     });
 
+    test('the two lanes never share a cache entry', () {
+      // Same filters, different order - caching them together would show the
+      // wrong lane's list on open.
+      const top = FeedQuery(personalised: true);
+      const latest = FeedQuery(personalised: true, sort: FeedSort.latest);
+      expect(top, isNot(latest));
+      expect(top.cacheKey, isNot(latest.cacheKey));
+    });
+
+    test('withSort keeps every other filter intact', () {
+      const q = FeedQuery(regions: ['uk'], topic: 'business');
+      final latest = q.withSort(FeedSort.latest);
+      expect(latest.regions, ['uk']);
+      expect(latest.topic, 'business');
+      expect(latest.sort, FeedSort.latest);
+    });
+
+    test('the lane wire values match the API contract', () {
+      expect(FeedSort.top.wire, 'top');
+      expect(FeedSort.latest.wire, 'latest');
+    });
+
     test('different sections get different cache entries', () {
       expect(
         const FeedQuery(regions: ['uk']).cacheKey,

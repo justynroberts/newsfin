@@ -25,6 +25,7 @@ class _SectionsScreenState extends ConsumerState<SectionsScreen>
   late PageController _pages;
   int _regionIndex = 0;
   String _topic = 'top';
+  FeedSort _sort = FeedSort.top;
 
   @override
   void initState() {
@@ -81,6 +82,10 @@ class _SectionsScreenState extends ConsumerState<SectionsScreen>
               HapticFeedback.selectionClick();
               setState(() => _topic = t);
             },
+            lane: LaneSwitch(
+              sort: _sort,
+              onChanged: (s) => setState(() => _sort = s),
+            ),
           ),
           Expanded(
             child: PageView.builder(
@@ -90,8 +95,14 @@ class _SectionsScreenState extends ConsumerState<SectionsScreen>
               itemBuilder: (context, i) {
                 final region = regions[i];
                 return FeedList(
-                  key: ValueKey('${region.key}.$_topic.${settings.locale}'),
-                  query: FeedQuery(regions: [region.key], topic: _topic),
+                  key: ValueKey(
+                    '${region.key}.$_topic.${settings.locale}.${_sort.wire}',
+                  ),
+                  query: FeedQuery(
+                    regions: [region.key],
+                    topic: _topic,
+                    sort: _sort,
+                  ),
                   sectionLabel: _topic == 'top'
                       ? (region.key == 'local' ? localeLabel ?? region.label : region.label)
                       : '${region.label} · ${topics.firstWhere((t) => t.key == _topic, orElse: () => const Section('top', 'Top')).label}',
@@ -113,11 +124,16 @@ class _TopicRail extends StatelessWidget {
     required this.topics,
     required this.selected,
     required this.onChanged,
+    required this.lane,
   });
 
   final List<Section> topics;
   final String selected;
   final ValueChanged<String> onChanged;
+
+  /// Pinned beside the scrolling topics so the lane is always reachable
+  /// without scrolling the filter rail back to the start.
+  final Widget lane;
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +143,10 @@ class _TopicRail extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.hairline)),
       ),
-      child: ListView.separated(
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: Gap.page, vertical: Gap.sm),
         itemCount: topics.length,
@@ -154,9 +173,16 @@ class _TopicRail extends StatelessWidget {
                 ),
               ),
             ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        ),
+        Container(width: 1, height: 26, color: c.hairline),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, right: Gap.page - 9),
+          child: lane,
+        ),
+      ]),
     );
   }
 }

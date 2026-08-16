@@ -74,6 +74,7 @@ class NewsApi {
     int limit = 60,
     int offset = 0,
     int minSources = 1,
+    String sort = 'top',
     String? cacheKey,
   }) async {
     final q = <String, String>{
@@ -82,6 +83,7 @@ class NewsApi {
       'offset': '$offset',
       'min_sources': '$minSources',
       'coverage': 'true',
+      'sort': sort,
     };
     if (regions != null && regions.isNotEmpty) q['regions'] = regions.join(',');
     if (topic != null && topic != 'top') q['topic'] = topic;

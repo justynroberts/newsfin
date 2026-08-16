@@ -22,12 +22,23 @@ A story's impact score blends:
 
 | Signal | Weight | What it captures |
 |---|---|---|
-| Corroboration | 38% | Distinct newsrooms running it, log-scaled — 1→2 matters far more than 14→15 |
-| Recency | 18% | 7-hour half-life, so an 11pm story is still alive at breakfast |
-| Authority | 16% | Blend of the best and the average outlet carrying it |
-| Severity | 13% | Weighted lexicon — "killed" and "resigns" are not "wins" |
-| Prominence | 8% | Position in the source feed; item 0 is that newsroom's lead |
+| Corroboration | 30% | Distinct newsrooms running it, log-scaled — 1→2 matters far more than 14→15 |
+| Recency | 30% | 5-hour half-life, so the page turns over through the day |
+| Authority | 14% | Blend of the best and the average outlet carrying it |
+| Severity | 12% | Weighted lexicon — "killed" and "resigns" are not "wins" |
+| Prominence | 7% | Position in the source feed; item 0 is that newsroom's lead |
 | Velocity | 7% | How fast outlets are piling on — breaking vs slow-burn |
+
+Corroboration and recency carry equal weight, tuned against a live snapshot:
+at the original 38/18 the median age of the top fifteen was **9.2 hours** — the
+front page was reliably yesterday. At 30/30 it is **2.9 hours**, and a
+30-source earthquake still holds third place, which is the test that matters.
+Pushing recency further was tried and rejected: it put a UFC result above the
+earthquake, at which point the app is a wire feed rather than a ranking.
+
+**Two lanes.** `Top` is that ranking. `Latest` is strictly newest-first over
+the same filters — a wire feed of the sources you actually asked for, capped at
+two consecutive stories per newsroom so one prolific publisher cannot own it.
 
 Commerce, puzzle answers and horoscopes are dropped at ingest. Feeds that
 republish rather than report (Google News) count as a third of a newsroom.

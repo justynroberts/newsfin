@@ -115,6 +115,27 @@ def _row_to_story(r, *, include_breakdown: bool = False) -> dict:
     return out
 
 
+def _diversify(rows: list, per_source: int = 2) -> list:
+    """Stop one prolific outlet owning the top of the Latest lane.
+
+    Takes rows in their existing order and defers any beyond `per_source` from
+    the same newsroom, appending the deferred ones afterwards rather than
+    dropping them. Nothing is lost, and the reader gets a spread of newsrooms
+    at the point they actually look.
+    """
+    seen: dict[str, int] = {}
+    kept, deferred = [], []
+    for row in rows:
+        outlet = row["lead_source"]
+        count = seen.get(outlet, 0)
+        if count < per_source:
+            seen[outlet] = count + 1
+            kept.append(row)
+        else:
+            deferred.append(row)
+    return kept + deferred
+
+
 def _coverage(cluster_ids: list[int]) -> dict[int, list[dict]]:
     if not cluster_ids:
         return {}
@@ -167,14 +188,24 @@ def headlines(
     limit: int = Query(60, ge=1, le=200),
     offset: int = Query(0, ge=0),
     min_sources: int = Query(1, ge=1, le=20),
+    sort: str = Query("top", pattern="^(top|latest)$"),
     coverage: bool = True,
     debug: bool = False,
 ):
-    """Impact-ranked headlines.
+    """Ranked headlines.
 
     `weights` personalises the ordering: each cluster's impact is multiplied by
     the user's weight for its primary region, so someone who cares about Local
     and UK gets those lifted without losing a genuinely huge World story.
+
+    `sort` picks the lane:
+
+    * ``top``    - impact order. Recency is a third of that score, so this
+                   still turns over through the day.
+    * ``latest`` - strictly newest first. Every filter still applies, including
+                   region weights of zero and `min_sources`, so it is a wire
+                   feed of the sources you actually asked for rather than an
+                   unfiltered firehose.
     """
     conn = db.connect()
     cutoff = (datetime.now(UTC) - timedelta(hours=hours)).isoformat()
@@ -235,12 +266,33 @@ def headlines(
     else:
         rank_expr = "impact"
 
+    # In the Latest lane the ranking still travels with each story - the app
+    # keeps showing the impact marker and source count - but it no longer
+    # decides the order. Impact breaks ties so two stories filed in the same
+    # minute still lead with the bigger one.
+    order_by = (
+        "published DESC, ranked DESC" if sort == "latest" else "ranked DESC, published DESC"
+    )
+
     sql = (
         f"SELECT *, {rank_expr} AS ranked FROM cluster "
         f"WHERE {' AND '.join(where)} "
-        f"ORDER BY ranked DESC, published DESC LIMIT ? OFFSET ?"
+        f"ORDER BY {order_by} LIMIT ? OFFSET ?"
     )
-    rows = conn.execute(sql, [*params, limit, offset]).fetchall()
+
+    if sort == "latest":
+        # Order alone is not enough here. A handful of outlets publish in
+        # bursts and stamp the whole burst with the same minute, so a purely
+        # chronological lane showed eight of its first ten from one newsroom -
+        # a feed reader for that publisher, not the latest news.
+        #
+        # Diversify the whole prefix before slicing the page, so paging stays
+        # consistent rather than re-deciding per page.
+        window = min(600, offset + limit * 4)
+        raw = conn.execute(sql, [*params, window, 0]).fetchall()
+        rows = _diversify(raw, per_source=2)[offset : offset + limit]
+    else:
+        rows = conn.execute(sql, [*params, limit, offset]).fetchall()
 
     stories = [_row_to_story(r, include_breakdown=debug) for r in rows]
     if coverage and stories:

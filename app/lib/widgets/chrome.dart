@@ -179,6 +179,62 @@ class Masthead extends ConsumerWidget {
   }
 }
 
+/// Switches one list between impact order and newest-first.
+///
+/// A pair of underlined labels rather than a pill toggle: it is the same kind
+/// of control as the section rail it sits beside, and it keeps the header from
+/// collecting a second visual language.
+class LaneSwitch extends StatelessWidget {
+  const LaneSwitch({super.key, required this.sort, required this.onChanged});
+
+  final FeedSort sort;
+  final ValueChanged<FeedSort> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NewsTheme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final lane in FeedSort.values)
+          Semantics(
+            button: true,
+            selected: lane == sort,
+            label: lane == FeedSort.top
+                ? 'Sort by impact'
+                : 'Sort by most recent',
+            child: InkWell(
+              onTap: () {
+                if (lane == sort) return;
+                HapticFeedback.selectionClick();
+                onChanged(lane);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: lane == sort ? c.accent : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  lane.label.toUpperCase(),
+                  style: NewsType.eyebrow.copyWith(
+                    fontSize: 10,
+                    color: lane == sort ? c.textPrimary : c.textTertiary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 /// Placeholder rows shown on a cold start.
 ///
 /// Static blocks, not a shimmer sweep. A looping animation on every launch

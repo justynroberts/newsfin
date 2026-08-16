@@ -213,26 +213,58 @@ final settingsProvider =
 // Feeds
 // ---------------------------------------------------------------------------
 
+/// The two ways of ordering the same filtered set of stories.
+///
+/// Impact ranking already counts recency for a third of the score, but "what
+/// matters" and "what just landed" are different questions and a news app
+/// should answer both.
+enum FeedSort {
+  top('top', 'Top'),
+  latest('latest', 'Latest');
+
+  const FeedSort(this.wire, this.label);
+  final String wire;
+  final String label;
+}
+
 /// Identifies one scrollable list of stories.
 @immutable
 class FeedQuery {
-  const FeedQuery({this.regions, this.topic, this.personalised = false});
+  const FeedQuery({
+    this.regions,
+    this.topic,
+    this.personalised = false,
+    this.sort = FeedSort.top,
+  });
 
   final List<String>? regions;
   final String? topic;
+
+  /// Which lane this list is showing. Top is impact-ordered; Latest is
+  /// strictly newest-first over the same filters.
+  final FeedSort sort;
 
   /// Apply the reader's region weighting. True only for the Headlines tab -
   /// on a section tab the reader has already stated the region they want.
   final bool personalised;
 
   String get cacheKey =>
-      'v1.${personalised ? 'me' : 'plain'}.${regions?.join('-') ?? 'all'}.${topic ?? 'top'}';
+      'v2.${personalised ? 'me' : 'plain'}.${regions?.join('-') ?? 'all'}'
+      '.${topic ?? 'top'}.${sort.wire}';
+
+  FeedQuery withSort(FeedSort next) => FeedQuery(
+        regions: regions,
+        topic: topic,
+        personalised: personalised,
+        sort: next,
+      );
 
   @override
   bool operator ==(Object other) =>
       other is FeedQuery &&
       other.topic == topic &&
       other.personalised == personalised &&
+      other.sort == sort &&
       _sameList(other.regions, regions);
 
   static bool _sameList(List<String>? a, List<String>? b) {
@@ -245,7 +277,7 @@ class FeedQuery {
   }
 
   @override
-  int get hashCode => Object.hash(topic, personalised, regions?.join('-'));
+  int get hashCode => Object.hash(topic, personalised, sort, regions?.join('-'));
 }
 
 @immutable
@@ -332,6 +364,7 @@ class FeedController extends StateNotifier<FeedState> {
             hours: settings.hours,
             minSources: settings.minSources,
             limit: _pageSize,
+            sort: _query.sort.wire,
             cacheKey: _query.cacheKey,
           );
       if (!mounted) return;
@@ -364,6 +397,7 @@ class FeedController extends StateNotifier<FeedState> {
             hours: settings.hours,
             minSources: settings.minSources,
             limit: _pageSize,
+            sort: _query.sort.wire,
             offset: state.stories.length,
           );
       if (!mounted) return;

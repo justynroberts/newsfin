@@ -13,13 +13,20 @@ import 'feed_list.dart';
 /// One blended, impact-ranked list drawn from every region, reweighted by what
 /// the reader said matters to them. Open it at 6am and the top of the list is
 /// the day, not whatever a single outlet published most recently.
-class HeadlinesScreen extends ConsumerWidget {
+class HeadlinesScreen extends ConsumerStatefulWidget {
   const HeadlinesScreen({super.key, required this.onOpenSettings});
 
   final VoidCallback onOpenSettings;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HeadlinesScreen> createState() => _HeadlinesScreenState();
+}
+
+class _HeadlinesScreenState extends ConsumerState<HeadlinesScreen> {
+  FeedSort _sort = FeedSort.top;
+
+  @override
+  Widget build(BuildContext context) {
     final c = NewsTheme.of(context);
     final settings = ref.watch(settingsProvider);
     final now = DateTime.now();
@@ -30,21 +37,21 @@ class HeadlinesScreen extends ConsumerWidget {
         .toList()
       ..sort((a, b) => settings.weights[b]!.compareTo(settings.weights[a]!));
 
+    final query = FeedQuery(personalised: true, sort: _sort);
+
     return SafeArea(
       bottom: false,
       child: FeedList(
-        query: const FeedQuery(personalised: true),
-        sectionLabel: _greeting(now),
+        key: ValueKey('headlines.${_sort.wire}'),
+        query: query,
+        sectionLabel: _sort == FeedSort.latest ? 'Latest' : _greeting(now),
         header: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Masthead(
               dateline: DateFormat('EEEE d MMMM').format(now),
               trailing: ListenButton(
-                stories: ref.watch(
-                  feedProvider(const FeedQuery(personalised: true))
-                      .select((s) => s.stories),
-                ),
+                stories: ref.watch(feedProvider(query).select((s) => s.stories)),
               ),
             ),
             Padding(
@@ -67,7 +74,30 @@ class HeadlinesScreen extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  _WeightButton(onTap: onOpenSettings),
+                  _WeightButton(onTap: widget.onOpenSettings),
+                ],
+              ),
+            ),
+            Container(height: 1, color: c.hairline),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Gap.page - 9),
+              child: Row(
+                children: [
+                  LaneSwitch(
+                    sort: _sort,
+                    onChanged: (s) => setState(() => _sort = s),
+                  ),
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 9),
+                    child: Text(
+                      _sort == FeedSort.latest
+                          ? 'NEWEST FIRST'
+                          : 'RANKED BY IMPACT',
+                      style: NewsType.eyebrow
+                          .copyWith(color: c.textTertiary, fontSize: 9),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -79,7 +109,7 @@ class HeadlinesScreen extends ConsumerWidget {
   }
 
   /// A morning app should acknowledge the morning.
-  static String _greeting(DateTime now) {
+  String _greeting(DateTime now) {
     final h = now.hour;
     if (h < 5) return 'Overnight';
     if (h < 12) return 'This morning';
@@ -87,7 +117,7 @@ class HeadlinesScreen extends ConsumerWidget {
     return 'This evening';
   }
 
-  static String _regionLabel(String key) => switch (key) {
+  String _regionLabel(String key) => switch (key) {
         'local' => 'Local',
         'uk' => 'UK',
         'ie' => 'Ireland',

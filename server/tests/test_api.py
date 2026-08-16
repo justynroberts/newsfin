@@ -58,15 +58,27 @@ def seeded():
     conn.executescript(
         "DELETE FROM article; DELETE FROM cluster; DELETE FROM cluster_fts; DELETE FROM meta;"
     )
-    seed(1, "Powerful earthquake kills at least 38 in Indonesia", "world", 25, 92.0)
+    seed(1, "Powerful earthquake kills at least 38 in Indonesia", "world", 25, 92.0,
+         source_name="BBC World")
     seed(2, "Bank of England holds interest rates at four percent", "uk", 12, 78.0,
-         topics="business")
+         topics="business", source_name="BBC News")
     seed(3, "Trump threatens new tariffs on European imports", "us", 14, 76.0,
-         topics="politics")
+         topics="politics", source_name="NYT Politics")
     seed(4, "Council approves Salford housing development", "local", 2, 44.0,
-         locales="manchester")
-    seed(5, "Macron calls snap election in France", "eu", 8, 70.0, topics="politics")
-    seed(6, "Old story about a minor planning dispute", "uk", 1, 30.0, hours_ago=100)
+         locales="manchester", source_name="Manchester Evening News")
+    seed(5, "Macron calls snap election in France", "eu", 8, 70.0, topics="politics",
+         source_name="Le Monde")
+    seed(6, "Old story about a minor planning dispute", "uk", 1, 30.0, hours_ago=100,
+         source_name="Local Gazette")
+    # One prolific outlet filing a burst, all stamped the same minute - the
+    # pattern that turned the lane into a feed reader for that publisher.
+    for n in range(8, 14):
+        seed(n, f"Burst filing number {n} from one newsroom", "world", 1, 20.0,
+             hours_ago=0.5, source_name="Busy Wire")
+    # Seeded last so it is unambiguously the newest, and deliberately low
+    # impact: it should lead Latest and stay well down Top.
+    seed(7, "Minor council notice filed this minute", "uk", 1, 22.0, hours_ago=0,
+         source_name="Parish Notice Board")
     yield
     conn.executescript("DELETE FROM article; DELETE FROM cluster; DELETE FROM cluster_fts;")
 
@@ -141,6 +153,117 @@ class TestHeadlines:
         first = {s["id"] for s in get("/api/v1/headlines", limit=2, offset=0)["stories"]}
         second = {s["id"] for s in get("/api/v1/headlines", limit=2, offset=2)["stories"]}
         assert not (first & second)
+
+
+class TestLatestLane:
+    """`sort=latest` is a wire feed of the sources you already asked for."""
+
+    def test_the_newest_story_leads(self):
+        stories = get("/api/v1/headlines", sort="latest")["stories"]
+        newest = max(s["published"] for s in stories)
+        assert stories[0]["published"] == newest
+
+    def test_distinct_outlets_stay_in_chronological_order(self):
+        """Within the capped prefix - i.e. ignoring the deferred tail - the
+        lane is strictly newest-first."""
+        stories = get("/api/v1/headlines", sort="latest")["stories"]
+        seen: set[str] = set()
+        prefix = []
+        for s in stories:
+            if s["source"] in seen:
+                break
+            seen.add(s["source"])
+            prefix.append(s["published"])
+        assert prefix == sorted(prefix, reverse=True)
+
+    def test_the_newest_story_leads_even_on_a_low_score(self):
+        stories = get("/api/v1/headlines", sort="latest")["stories"]
+        assert "this minute" in stories[0]["title"]
+
+    def test_top_still_ranks_that_story_far_down(self):
+        stories = get("/api/v1/headlines")["stories"]
+        assert "this minute" not in stories[0]["title"]
+
+    def test_filters_still_apply_in_the_latest_lane(self):
+        stories = get("/api/v1/headlines", sort="latest", regions="world")["stories"]
+        assert {s["region"] for s in stories} == {"world"}
+
+    def test_a_hidden_region_stays_hidden_in_latest(self):
+        stories = get(
+            "/api/v1/headlines", sort="latest",
+            weights="uk:0,world:2,us:2,eu:2,local:2,ie:2",
+        )["stories"]
+        assert "uk" not in {s["region"] for s in stories}
+
+    def test_minimum_sources_still_applies(self):
+        stories = get("/api/v1/headlines", sort="latest", min_sources=5)["stories"]
+        assert all(s["sources"] >= 5 for s in stories)
+
+    def test_the_ranking_still_travels_with_each_story(self):
+        # The app keeps showing the impact marker and source count in this lane.
+        story = get("/api/v1/headlines", sort="latest")["stories"][0]
+        assert "impact" in story and "sources" in story
+
+    def test_one_outlet_cannot_own_the_latest_lane(self):
+        """A few outlets publish in bursts and stamp the whole burst with the
+        same minute, so a purely chronological lane became a feed reader for
+        that one publisher."""
+        stories = get("/api/v1/headlines", sort="latest", limit=8)["stories"]
+        from collections import Counter
+
+        counts = Counter(s["source"] for s in stories)
+        assert counts.most_common(1)[0][1] <= 2
+
+    def test_deferred_stories_are_not_dropped(self):
+        # Everything still appears, just later in the lane.
+        stories = get("/api/v1/headlines", sort="latest", limit=200)["stories"]
+        assert sum(1 for s in stories if s["source"] == "Busy Wire") == 6
+
+    def test_paging_the_latest_lane_does_not_repeat(self):
+        first = {s["id"] for s in get("/api/v1/headlines", sort="latest", limit=5)["stories"]}
+        second = {
+            s["id"]
+            for s in get("/api/v1/headlines", sort="latest", limit=5, offset=5)["stories"]
+        }
+        assert not (first & second)
+
+    def test_an_unknown_sort_is_rejected(self):
+        assert client.get(
+            "/api/v1/headlines", params={"sort": "sideways"}
+        ).status_code == 422
+
+
+class TestDiversify:
+    """Exact semantics of the per-outlet cap, away from HTTP and SQL."""
+
+    @staticmethod
+    def rows(*sources):
+        return [{"lead_source": s} for s in sources]
+
+    def test_defers_rather_than_drops(self):
+        from newsfin.api import _diversify
+
+        out = _diversify(self.rows("A", "A", "A", "B"), per_source=2)
+        assert [r["lead_source"] for r in out] == ["A", "A", "B", "A"]
+
+    def test_keeps_relative_order_within_a_source(self):
+        from newsfin.api import _diversify
+
+        rows = [{"lead_source": "A", "n": i} for i in range(4)]
+        out = _diversify(rows, per_source=1)
+        assert [r["n"] for r in out] == [0, 1, 2, 3]
+
+    def test_nothing_is_lost(self):
+        from newsfin.api import _diversify
+
+        rows = self.rows("A", "B", "A", "C", "A", "B")
+        assert len(_diversify(rows, per_source=2)) == len(rows)
+
+    def test_a_varied_page_is_left_untouched(self):
+        from newsfin.api import _diversify
+
+        rows = self.rows("A", "B", "C", "D")
+        assert _diversify(rows, per_source=2) == rows
 
 
 class TestSearch:

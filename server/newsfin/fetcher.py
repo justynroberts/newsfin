@@ -53,7 +53,8 @@ def _clean_summary(raw: str | None) -> str:
     return text[:400]
 
 
-def _parse_date(entry) -> datetime:
+def _parse_date(entry) -> datetime | None:
+    """The entry's own timestamp, or None if it does not carry a usable one."""
     now = datetime.now(UTC)
     for key in ("published_parsed", "updated_parsed"):
         st = entry.get(key)
@@ -74,7 +75,26 @@ def _parse_date(entry) -> datetime:
                 return min(dt.astimezone(UTC), now)
             except (TypeError, ValueError):
                 pass
-    return now
+    return None
+
+
+def _undated_fallback(dated: list[datetime]) -> datetime:
+    """What to call the publish time of an entry that carries no date.
+
+    Not "now". About 2% of entries arrive undated - Nikkei Asia sends none at
+    all, CNN drops them intermittently - and stamping those with the fetch time
+    told the ranking they had just broken. With recency worth a third of the
+    score, and with a Latest lane ordering purely on it, those few feeds
+    monopolised the top of both.
+
+    A feed lists newest first, so an undated entry is at least as old as the
+    oldest dated one beside it. That is conservative, self-adjusting, and does
+    not invent freshness the feed never claimed.
+    """
+    if dated:
+        return min(dated)
+    # Nothing in the feed is dated: assume half a day rather than this instant.
+    return datetime.now(UTC) - timedelta(hours=12)
 
 
 def _record_health(key: str, *, ok: bool, status: int | None, error: str, entries: int,
@@ -151,13 +171,19 @@ async def fetch_one(client: httpx.AsyncClient, source: Source, *, max_age_days: 
     parsed = feedparser.parse(response.content)
     cutoff = datetime.now(UTC) - timedelta(days=max_age_days)
 
+    # Two passes: read every date first, so an undated entry can be placed
+    # against the rest of its own feed rather than against the clock.
+    entries = list(parsed.entries[:80])
+    dates = [_parse_date(e) for e in entries]
+    fallback = _undated_fallback([d for d in dates if d is not None])
+
     items: list[Item] = []
-    for i, entry in enumerate(parsed.entries[:80]):
+    for i, (entry, parsed_date) in enumerate(zip(entries, dates, strict=True)):
         title = (entry.get("title") or "").strip()
         url = (entry.get("link") or "").strip()
         if not title or not url or len(title) < 12:
             continue
-        published = _parse_date(entry)
+        published = parsed_date if parsed_date is not None else fallback
         if published < cutoff:
             continue
         items.append(
