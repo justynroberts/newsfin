@@ -75,6 +75,24 @@ class _SectionsScreenState extends ConsumerState<SectionsScreen>
               );
             },
           ),
+          // The lane switch had been squeezed into the topic rail, which left
+          // the topics clipped at about half the width - Sport, Science and
+          // Entertainment were cut off mid-word and effectively unreachable.
+          // It gets its own row; the topics get the screen back.
+          Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: c.hairline)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: Gap.page - 12),
+            child: Row(
+              children: [
+                LaneSwitch(
+                  sort: _sort,
+                  onChanged: (s) => setState(() => _sort = s),
+                ),
+              ],
+            ),
+          ),
           _TopicRail(
             topics: topics,
             selected: _topic,
@@ -82,10 +100,6 @@ class _SectionsScreenState extends ConsumerState<SectionsScreen>
               HapticFeedback.selectionClick();
               setState(() => _topic = t);
             },
-            lane: LaneSwitch(
-              sort: _sort,
-              onChanged: (s) => setState(() => _sort = s),
-            ),
           ),
           Expanded(
             child: PageView.builder(
@@ -124,16 +138,11 @@ class _TopicRail extends StatelessWidget {
     required this.topics,
     required this.selected,
     required this.onChanged,
-    required this.lane,
   });
 
   final List<Section> topics;
   final String selected;
   final ValueChanged<String> onChanged;
-
-  /// Pinned beside the scrolling topics so the lane is always reachable
-  /// without scrolling the filter rail back to the start.
-  final Widget lane;
 
   @override
   Widget build(BuildContext context) {
@@ -143,10 +152,7 @@ class _TopicRail extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.hairline)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: ListView.separated(
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: Gap.page, vertical: Gap.sm),
         itemCount: topics.length,
@@ -173,16 +179,9 @@ class _TopicRail extends StatelessWidget {
                 ),
               ),
             ),
-              );
-            },
-          ),
-        ),
-        Container(width: 1, height: 26, color: c.hairline),
-        Padding(
-          padding: const EdgeInsets.only(left: 4, right: Gap.page - 9),
-          child: lane,
-        ),
-      ]),
+          );
+        },
+      ),
     );
   }
 }

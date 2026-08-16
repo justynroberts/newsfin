@@ -48,8 +48,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       bottom: false,
       child: Column(
         children: [
+          // Search had no masthead, so it was the one screen without the
+          // About control - the house style asks for it everywhere.
+          const Masthead(dateline: 'Search', subtitle: 'Across every source'),
           Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.page, Gap.md, Gap.page, Gap.md),
+            padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.md),
             child: Container(
               decoration: BoxDecoration(
                 color: c.surfaceRaised,
