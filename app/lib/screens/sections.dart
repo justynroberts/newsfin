@@ -25,7 +25,7 @@ class _SectionsScreenState extends ConsumerState<SectionsScreen>
   late PageController _pages;
   int _regionIndex = 0;
   String _topic = 'top';
-  FeedSort _sort = FeedSort.top;
+  FeedSort _sort = FeedSort.latest;
 
   @override
   void initState() {

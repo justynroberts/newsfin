@@ -23,7 +23,9 @@ class HeadlinesScreen extends ConsumerStatefulWidget {
 }
 
 class _HeadlinesScreenState extends ConsumerState<HeadlinesScreen> {
-  FeedSort _sort = FeedSort.top;
+  // Opens on Latest: the first question at 6am is what has happened since
+  // last night, and Top is one tap away.
+  FeedSort _sort = FeedSort.latest;
 
   @override
   Widget build(BuildContext context) {

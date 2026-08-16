@@ -3,7 +3,7 @@
 Impact-ranked world news. Headlines only, no pictures, straight through to the
 article.
 
-NewsFin polls ~250 RSS feeds from newsrooms across the UK, Ireland, Europe, the
+NewsFin polls ~280 RSS feeds from newsrooms across the UK, Ireland, Europe, the
 US and the rest of the world, works out which of them are covering *the same
 story*, and orders the result by how much it actually matters — not by how
 recently it was published.
@@ -16,7 +16,7 @@ recently it was published.
 
 The dominant signal is **corroboration**: how many independent newsrooms have
 each decided, separately, that a story is worth their front page. That is a
-real editorial vote aggregated across 250 outlets, and it is very hard to game.
+real editorial vote aggregated across 280 outlets, and it is very hard to game.
 
 A story's impact score blends:
 
@@ -36,20 +36,22 @@ front page was reliably yesterday. At 30/30 it is **2.9 hours**, and a
 Pushing recency further was tried and rejected: it put a UFC result above the
 earthquake, at which point the app is a wire feed rather than a ranking.
 
-**Two lanes.** `Top` is that ranking. `Latest` is strictly newest-first over
-the same filters — a wire feed of the sources you actually asked for, capped at
+**Two lanes.** `Latest` is the default — strictly newest-first over your
+filters, because the first question in the morning is what has happened since
+last night. `Top` is the impact ranking, one tap away. Both cover the same
+filtered set — a wire feed of the sources you actually asked for, capped at
 two consecutive stories per newsroom so one prolific publisher cannot own it.
 
 Commerce, puzzle answers and horoscopes are dropped at ingest. Feeds that
 republish rather than report (Google News) count as a third of a newsroom.
 
 Each reader then reweights it. Set Local and UK to *Top* and Europe to *Off*
-and the same 250 feeds reorder around you — without burying a genuinely huge
+and the same 280 feeds reorder around you — without burying a genuinely huge
 World story.
 
 ## How stories get grouped
 
-Grouping the same event across 250 differently-worded headlines is the whole
+Grouping the same event across 280 differently-worded headlines is the whole
 trick, and it runs in milliseconds — no embeddings, no model.
 
 1. **Normalise** — strip accents, publisher suffixes, dates and bare numbers.
@@ -78,7 +80,8 @@ Flutter, iOS + Android + web from one codebase.
 
 - **Headlines** — one blended list, reweighted by what you said matters.
 - **Sections** — Local / UK / Ireland / Europe / US / World, each filterable by
-  topic. Swipe between them.
+  topic: Politics, Business, Tech, Science, Health, Climate, Sport,
+  Entertainment, Culture, Security. Swipe between them.
 - **Search** — full-text across everything from the last few days.
 - **Coverage sheet** — long-press any story to see every outlet's headline for
   the same event. Nothing else shows you the framing side by side.

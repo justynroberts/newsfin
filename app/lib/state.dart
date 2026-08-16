@@ -218,9 +218,11 @@ final settingsProvider =
 /// Impact ranking already counts recency for a third of the score, but "what
 /// matters" and "what just landed" are different questions and a news app
 /// should answer both.
+/// Latest is first because it is the default: the switch reads left-to-right
+/// as "what just landed" then "what matters most".
 enum FeedSort {
-  top('top', 'Top'),
-  latest('latest', 'Latest');
+  latest('latest', 'Latest'),
+  top('top', 'Top');
 
   const FeedSort(this.wire, this.label);
   final String wire;
@@ -234,7 +236,7 @@ class FeedQuery {
     this.regions,
     this.topic,
     this.personalised = false,
-    this.sort = FeedSort.top,
+    this.sort = FeedSort.latest,
   });
 
   final List<String>? regions;

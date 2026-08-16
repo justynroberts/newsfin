@@ -74,7 +74,7 @@ class NewsApi {
     int limit = 60,
     int offset = 0,
     int minSources = 1,
-    String sort = 'top',
+    String sort = 'latest',
     String? cacheKey,
   }) async {
     final q = <String, String>{

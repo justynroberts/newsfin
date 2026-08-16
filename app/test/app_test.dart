@@ -265,7 +265,7 @@ void main() {
     test('the two lanes never share a cache entry', () {
       // Same filters, different order - caching them together would show the
       // wrong lane's list on open.
-      const top = FeedQuery(personalised: true);
+      const top = FeedQuery(personalised: true, sort: FeedSort.top);
       const latest = FeedQuery(personalised: true, sort: FeedSort.latest);
       expect(top, isNot(latest));
       expect(top.cacheKey, isNot(latest.cacheKey));
@@ -282,6 +282,13 @@ void main() {
     test('the lane wire values match the API contract', () {
       expect(FeedSort.top.wire, 'top');
       expect(FeedSort.latest.wire, 'latest');
+    });
+
+    test('a feed opens on Latest', () {
+      // "What has happened since last night" is the first question at 6am;
+      // Top is one tap away.
+      expect(const FeedQuery().sort, FeedSort.latest);
+      expect(FeedSort.values.first, FeedSort.latest);
     });
 
     test('different sections get different cache entries', () {

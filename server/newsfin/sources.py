@@ -44,6 +44,7 @@ TOPICS = [
     "health",
     "environment",
     "sport",
+    "entertainment",
     "culture",
     "security",
 ]
@@ -57,6 +58,7 @@ TOPIC_LABELS = {
     "health": "Health",
     "environment": "Climate",
     "sport": "Sport",
+    "entertainment": "Entertainment",
     "culture": "Culture",
     "security": "Security",
 }
@@ -126,7 +128,7 @@ SOURCES: list[Source] = [
     S("bbc-science", "BBC Science", "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", "uk", ["science", "environment"], 0.9),
     S("bbc-health", "BBC Health", "https://feeds.bbci.co.uk/news/health/rss.xml", "uk", ["health"], 0.9),
     S("bbc-education", "BBC Education", "https://feeds.bbci.co.uk/news/education/rss.xml", "uk", ["top"], 0.88),
-    S("bbc-ents", "BBC Culture", "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml", "uk", ["culture"], 0.85),
+    S("bbc-ents", "BBC Entertainment", "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml", "uk", ["entertainment", "culture"], 0.85),
     S("bbc-sport", "BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml", "uk", ["sport"], 0.9),
     S("bbc-world", "BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml", "world", ["top"], 0.95),
 
@@ -138,7 +140,7 @@ SOURCES: list[Source] = [
     S("guardian-env", "Guardian Environment", "https://www.theguardian.com/uk/environment/rss", "uk", ["environment"], 0.86),
     S("guardian-world", "Guardian World", "https://www.theguardian.com/world/rss", "world", ["top"], 0.9),
     S("guardian-football", "Guardian Football", "https://www.theguardian.com/football/rss", "uk", ["sport"], 0.85),
-    S("guardian-culture", "Guardian Culture", "https://www.theguardian.com/uk/culture/rss", "uk", ["culture"], 0.82),
+    S("guardian-culture", "Guardian Culture", "https://www.theguardian.com/uk/culture/rss", "uk", ["culture", "entertainment"], 0.82),
 
     S("sky-home", "Sky News", "https://feeds.skynews.com/feeds/rss/home.xml", "uk", ["top"], 0.85),
     S("sky-uk", "Sky News UK", "https://feeds.skynews.com/feeds/rss/uk.xml", "uk", ["top"], 0.85),
@@ -414,8 +416,64 @@ SOURCES: list[Source] = [
     S("premiumtimes", "Premium Times", "https://www.premiumtimesng.com/feed", "world", ["top"], 0.68),
 
     # ------------------------------------------------------------------
+    # Entertainment - film and television
+    # ------------------------------------------------------------------
+    S("guardian-film", "Guardian Film", "https://www.theguardian.com/film/rss", "uk", ["entertainment"], 0.78),
+    S("guardian-tv", "Guardian TV", "https://www.theguardian.com/tv-and-radio/rss", "uk", ["entertainment"], 0.76),
+    S("sky-ents", "Sky News Entertainment", "https://feeds.skynews.com/feeds/rss/entertainment.xml", "uk", ["entertainment"], 0.72),
+    S("radiotimes", "Radio Times", "https://www.radiotimes.com/feed/", "uk", ["entertainment"], 0.62),
+    S("digitalspy", "Digital Spy", "https://www.digitalspy.com/rss/all.xml", "uk", ["entertainment"], 0.58),
+    S("variety", "Variety", "https://variety.com/feed/", "us", ["entertainment"], 0.75),
+    S("hollywoodreporter", "The Hollywood Reporter", "https://www.hollywoodreporter.com/feed/", "us", ["entertainment"], 0.74),
+    S("deadline", "Deadline", "https://deadline.com/feed/", "us", ["entertainment"], 0.72),
+    S("avclub", "The A.V. Club", "https://www.avclub.com/rss", "us", ["entertainment"], 0.58),
+
+    # ------------------------------------------------------------------
+    # Entertainment - music
+    # ------------------------------------------------------------------
+    S("guardian-music", "Guardian Music", "https://www.theguardian.com/music/rss", "uk", ["entertainment"], 0.76),
+    S("nme", "NME", "https://www.nme.com/feed", "uk", ["entertainment"], 0.62),
+    S("rollingstone", "Rolling Stone", "https://www.rollingstone.com/feed/", "us", ["entertainment"], 0.7),
+    S("billboard", "Billboard", "https://www.billboard.com/feed/", "us", ["entertainment"], 0.7),
+    S("pitchfork", "Pitchfork", "https://pitchfork.com/feed/feed-news/rss", "us", ["entertainment"], 0.66),
+    S("stereogum", "Stereogum", "https://www.stereogum.com/feed/", "us", ["entertainment"], 0.58),
+    S("consequence", "Consequence", "https://consequence.net/feed/", "us", ["entertainment"], 0.58),
+
+    # ------------------------------------------------------------------
+    # Entertainment - games
+    # ------------------------------------------------------------------
+    S("eurogamer", "Eurogamer", "https://www.eurogamer.net/feed", "uk", ["entertainment", "tech"], 0.64),
+    S("rockpapershotgun", "Rock Paper Shotgun", "https://www.rockpapershotgun.com/feed", "uk", ["entertainment", "tech"], 0.62),
+    S("gamesradar", "GamesRadar+", "https://www.gamesradar.com/rss/", "uk", ["entertainment"], 0.58),
+    S("ign", "IGN", "https://feeds.ign.com/ign/all", "us", ["entertainment"], 0.62),
+    S("polygon", "Polygon", "https://www.polygon.com/rss/index.xml", "us", ["entertainment"], 0.64),
+    S("pcgamer", "PC Gamer", "https://www.pcgamer.com/rss/", "us", ["entertainment", "tech"], 0.6),
+
+    # ------------------------------------------------------------------
+    # Sport - wider than the football-only coverage it started with
+    # ------------------------------------------------------------------
+    S("bbc-football", "BBC Football", "https://feeds.bbci.co.uk/sport/football/rss.xml", "uk", ["sport"], 0.9),
+    S("guardian-sport", "Guardian Sport", "https://www.theguardian.com/uk/sport/rss", "uk", ["sport"], 0.85),
+    S("skysports-football", "Sky Sports Football", "https://www.skysports.com/rss/11095", "uk", ["sport"], 0.76),
+    S("independent-sport", "Independent Sport", "https://www.independent.co.uk/sport/rss", "uk", ["sport"], 0.7),
+    S("skysports-f1", "Sky Sports F1", "https://www.skysports.com/rss/12433", "world", ["sport"], 0.74),
+    S("autosport", "Autosport", "https://www.autosport.com/rss/feed/all", "world", ["sport"], 0.7),
+    S("cricinfo", "ESPNcricinfo", "https://www.espncricinfo.com/rss/content/story/feeds/0.xml", "world", ["sport"], 0.76),
+
+    # ------------------------------------------------------------------
+    # Filling gaps - money, consumer, society, markets
+    # ------------------------------------------------------------------
+    S("channel4news", "Channel 4 News", "https://www.channel4.com/news/feed", "uk", ["top"], 0.82),
+    S("guardian-society", "Guardian Society", "https://www.theguardian.com/society/rss", "uk", ["health", "politics"], 0.8),
+    S("guardian-money", "Guardian Money", "https://www.theguardian.com/money/rss", "uk", ["business"], 0.78),
+    S("which-news", "Which?", "https://www.which.co.uk/news/feed", "uk", ["business"], 0.68),
+    S("bloomberg-markets", "Bloomberg Markets", "https://feeds.bloomberg.com/markets/news.rss", "us", ["business"], 0.85),
+    S("huffpost-uk", "HuffPost UK", "https://www.huffingtonpost.co.uk/feeds/index.xml", "uk", ["top"], 0.55),
+
+    # ------------------------------------------------------------------
     # Aggregators - broad safety net, discounted in scoring
     # ------------------------------------------------------------------
+    S("yahoo-uk", "Yahoo News UK", "https://uk.news.yahoo.com/rss", "uk", ["top"], 0.42, aggregator=True),
     S("gnews-uk", "Google News UK", "https://news.google.com/rss?hl=en-GB&gl=GB&ceid=GB:en", "uk", ["top"], 0.45, aggregator=True),
     S("gnews-world", "Google News World", "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-GB&gl=GB&ceid=GB:en", "world", ["top"], 0.45, aggregator=True),
     S("gnews-business", "Google News Business", "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-GB&gl=GB&ceid=GB:en", "uk", ["business"], 0.42, aggregator=True),
